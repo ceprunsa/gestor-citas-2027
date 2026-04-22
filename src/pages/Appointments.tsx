@@ -70,6 +70,7 @@ const Appointments = () => {
     appointment: Appointment | null;
     newStatus: Appointment["status"] | null;
   }>({ appointment: null, newStatus: null });
+  const [cancellationReason, setCancellationReason] = useState("");
 
   // Estado para modal de exportación
   const [showExportModal, setShowExportModal] = useState(false);
@@ -196,6 +197,12 @@ const Appointments = () => {
       return;
     }
 
+    if (newStatus === "cancelled" || newStatus === "no-show") {
+      setAppointmentToChangeStatus({ appointment, newStatus });
+      setCancellationReason("");
+      return;
+    }
+
     confirmChangeStatus(appointment, newStatus);
   };
 
@@ -237,8 +244,9 @@ const Appointments = () => {
     if (!targetAppointment || !targetStatus) return;
 
     try {
-      await updateAppointmentStatus(targetAppointment.id, targetStatus);
+      await updateAppointmentStatus(targetAppointment.id, targetStatus, { cancellationReason });
       setAppointmentToChangeStatus({ appointment: null, newStatus: null });
+      setCancellationReason("");
     } catch (error) {
       console.error("Error al cambiar estado de la cita:", error);
     }
@@ -899,6 +907,77 @@ const Appointments = () => {
                   type="button"
                   className="btn btn-secondary mt-3 sm:mt-0 sm:ml-3"
                   onClick={cancelDelete}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cambio de Estado (Cancelación / No Asistió) */}
+      {appointmentToChangeStatus.appointment && (appointmentToChangeStatus.newStatus === "cancelled" || appointmentToChangeStatus.newStatus === "no-show") && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <AlertCircle className="h-6 w-6 text-amber-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                    <h3
+                      className="text-lg leading-6 font-medium text-gray-900"
+                      id="modal-title"
+                    >
+                      {appointmentToChangeStatus.newStatus === "cancelled" ? "Cancelar cita" : "Marcar como 'No asistió'"}
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500 mb-3">
+                        Estás a punto de cambiar el estado de la cita de{" "}
+                        <strong>{appointmentToChangeStatus.appointment.client.fullName}</strong>.
+                      </p>
+                      <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">
+                        Motivo / Razón (Requerido)
+                      </label>
+                      <textarea
+                        id="reason"
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Especifique el motivo..."
+                        value={cancellationReason}
+                        onChange={(e) => setCancellationReason(e.target.value)}
+                      ></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="btn btn-primary sm:ml-3 disabled:opacity-50"
+                  onClick={() => confirmChangeStatus()}
+                  disabled={cancellationReason.trim().length === 0}
+                >
+                  Confirmar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary mt-3 sm:mt-0 sm:ml-3"
+                  onClick={() => setAppointmentToChangeStatus({ appointment: null, newStatus: null })}
                 >
                   Cancelar
                 </button>

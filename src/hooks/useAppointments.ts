@@ -236,6 +236,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
       await updateDoc(doc(db, "appointments", id), {
         status,
         ...(status === "completed" && completionData ? completionData : {}),
+        ...((status === "cancelled" || status === "no-show") && completionData?.cancellationReason ? { cancellationReason: completionData.cancellationReason } : {}),
         updatedAt: new Date().toISOString(),
         updatedBy: user.email ?? "system",
       });

@@ -163,6 +163,13 @@ export interface Appointment {
    */
   updatedAt?: string;
   updatedBy?: string;
+  /**
+   * Encuesta de satisfacción para citas completadas (solo admin/coordinator)
+   */
+  satisfactionSurvey?: {
+    startedOnTime: boolean;
+    respectfulTreatment: boolean;
+  };
 }
 
 // ─── Tipos de retorno de hooks ─────────────────────────────────────────────────
