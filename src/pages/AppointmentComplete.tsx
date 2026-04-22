@@ -35,8 +35,6 @@ const AppointmentComplete = () => {
     currentApplication: "",
     previousApplications: "",
     firstEvaluationDate: "",
-    startedOnTime: null as boolean | null,
-    respectfulTreatment: null as boolean | null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -199,21 +197,9 @@ const AppointmentComplete = () => {
       firstEvaluationDate: formData.firstEvaluationDate || undefined,
     };
 
-    if (isAdmin || isCoordinator) {
-      completionData.satisfactionSurvey = {
-        startedOnTime: formData.startedOnTime!,
-        respectfulTreatment: formData.respectfulTreatment!,
-      };
-    }
-
     // Validate all required fields are filled
     if (!canCompleteAppointment(completionData)) {
       toast.error("Todos los campos académicos/demográficos son obligatorios para completar la cita");
-      return;
-    }
-
-    if ((isAdmin || isCoordinator) && (formData.startedOnTime === null || formData.respectfulTreatment === null)) {
-      toast.error("Por favor complete la encuesta de satisfacción");
       return;
     }
 
@@ -250,13 +236,6 @@ const AppointmentComplete = () => {
         : undefined,
       firstEvaluationDate: formData.firstEvaluationDate || undefined,
     };
-
-    if (isAdmin || isCoordinator) {
-      completionData.satisfactionSurvey = {
-        startedOnTime: formData.startedOnTime!,
-        respectfulTreatment: formData.respectfulTreatment!,
-      };
-    }
 
     setIsSubmitting(true);
     setShowConfirmModal(false);
@@ -568,64 +547,6 @@ const AppointmentComplete = () => {
             />
           </div>
         </div>
-
-        {(isAdmin || isCoordinator) && (
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Encuesta de Satisfacción</h3>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">¿La atención inició a la hora programada? *</p>
-                <div className="flex gap-4">
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="startedOnTime"
-                      checked={formData.startedOnTime === true}
-                      onChange={() => setFormData((prev) => ({ ...prev, startedOnTime: true }))}
-                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Sí</span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="startedOnTime"
-                      checked={formData.startedOnTime === false}
-                      onChange={() => setFormData((prev) => ({ ...prev, startedOnTime: false }))}
-                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">No</span>
-                  </label>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">¿El trato del profesional fue amable y respetuoso? *</p>
-                <div className="flex gap-4">
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="respectfulTreatment"
-                      checked={formData.respectfulTreatment === true}
-                      onChange={() => setFormData((prev) => ({ ...prev, respectfulTreatment: true }))}
-                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Sí</span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name="respectfulTreatment"
-                      checked={formData.respectfulTreatment === false}
-                      onChange={() => setFormData((prev) => ({ ...prev, respectfulTreatment: false }))}
-                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">No</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="mt-6 flex justify-end gap-3">
           <button

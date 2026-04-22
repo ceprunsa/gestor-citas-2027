@@ -23,8 +23,10 @@ interface AppointmentActionsMenuProps {
   onDelete: (appointment: Appointment) => void;
   onChangeStatus: (
     appointment: Appointment,
-    newStatus: Appointment["status"]
+    newStatus: Appointment["status"],
   ) => void;
+  onSurvey?: (appointment: Appointment) => void;
+  onReason?: (appointment: Appointment) => void;
   showPrimaryActions?: boolean;
 }
 
@@ -36,12 +38,14 @@ export const AppointmentActionsMenu = ({
   isPsychologist,
   onDelete,
   onChangeStatus,
+  onSurvey,
+  onReason,
   showPrimaryActions = true,
 }: AppointmentActionsMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<"right" | "left">("right");
   const [verticalPosition, setVerticalPosition] = useState<"down" | "up">(
-    "down"
+    "down",
   );
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -99,7 +103,7 @@ export const AppointmentActionsMenu = ({
     user,
     isAdmin,
     isCoordinator,
-    isPsychologist
+    isPsychologist,
   );
 
   // Acciones principales que se muestran como botones
@@ -115,7 +119,7 @@ export const AppointmentActionsMenu = ({
         title="Ver detalles"
       >
         <Eye size={14} />
-      </Link>
+      </Link>,
     );
   }
 
@@ -129,7 +133,7 @@ export const AppointmentActionsMenu = ({
         title="Editar cita"
       >
         <Edit size={14} />
-      </Link>
+      </Link>,
     );
   }
 
@@ -138,7 +142,12 @@ export const AppointmentActionsMenu = ({
     permissions.canMarkNoShow ||
     permissions.canCancel ||
     permissions.canReschedule ||
-    permissions.canDelete;
+    permissions.canDelete ||
+    (appointment.status === "completed" &&
+      (isAdmin || isCoordinator) &&
+      onSurvey) ||
+    ((appointment.status === "cancelled" || appointment.status === "no-show") &&
+      onReason);
 
   return (
     <div className="flex items-center gap-1">
@@ -170,7 +179,7 @@ export const AppointmentActionsMenu = ({
 
               {/* Menú */}
               <div
-                className={`absolute z-[60] w-48 bg-white border border-gray-200 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 ${
+                className={`absolute z-[60] w-52 bg-white border border-gray-200 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 ${
                   verticalPosition === "up"
                     ? "bottom-full mb-1"
                     : "top-full mt-1"
@@ -195,7 +204,7 @@ export const AppointmentActionsMenu = ({
                     <button
                       onClick={() =>
                         handleAction(() =>
-                          onChangeStatus(appointment, "scheduled")
+                          onChangeStatus(appointment, "scheduled"),
                         )
                       }
                       className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-800 transition-colors"
@@ -205,12 +214,42 @@ export const AppointmentActionsMenu = ({
                     </button>
                   )}
 
+                  {/* Encuesta de Satisfacción */}
+                  {appointment.status === "completed" &&
+                    (isAdmin || isCoordinator) &&
+                    onSurvey && (
+                      <button
+                        onClick={() =>
+                          handleAction(() => onSurvey(appointment))
+                        }
+                        className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                      >
+                        <Eye size={14} className="mr-2 text-blue-500" />
+                        Encuesta de satisfacción
+                      </button>
+                    )}
+
+                  {/* Ver/Editar Motivo de Cancelación */}
+                  {(appointment.status === "cancelled" ||
+                    appointment.status === "no-show") &&
+                    onReason && (
+                      <button
+                        onClick={() =>
+                          handleAction(() => onReason(appointment))
+                        }
+                        className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                      >
+                        <Edit size={14} className="mr-2 text-blue-500" />
+                        Motivo / Razón
+                      </button>
+                    )}
+
                   {/* No asistió */}
                   {permissions.canMarkNoShow && (
                     <button
                       onClick={() =>
                         handleAction(() =>
-                          onChangeStatus(appointment, "no-show")
+                          onChangeStatus(appointment, "no-show"),
                         )
                       }
                       className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-800 transition-colors"
@@ -225,7 +264,7 @@ export const AppointmentActionsMenu = ({
                     <button
                       onClick={() =>
                         handleAction(() =>
-                          onChangeStatus(appointment, "cancelled")
+                          onChangeStatus(appointment, "cancelled"),
                         )
                       }
                       className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-800 transition-colors"

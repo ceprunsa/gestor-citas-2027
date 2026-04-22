@@ -9,7 +9,7 @@ export interface ExcelExportOptions {
 
 export const exportAppointmentsToExcel = async (
   appointments: Appointment[],
-  options: ExcelExportOptions = {}
+  options: ExcelExportOptions = {},
 ) => {
   try {
     // Filtrar por rango de fechas si se especifica
@@ -78,7 +78,19 @@ export const exportAppointmentsToExcel = async (
         key: "firstEvaluationDate",
         width: 18,
       },
-      { header: "Motivo de Cancelación", key: "cancellationReason", width: 25 },
+      { header: "Motivo de Cancelación", key: "cancellationReason", width: 50 },
+      {
+        header:
+          "Encuesta de satisfacción: ¿La atención inició a la hora programada?",
+        key: "startedOnTime",
+        width: 25,
+      },
+      {
+        header:
+          "Encuesta de satisfacción: ¿El trato del profesional fue amable y respetuoso?",
+        key: "respectfulTreatment",
+        width: 25,
+      },
       { header: "Fecha de Creación", key: "createdAt", width: 18 },
       { header: "Creado por", key: "createdBy", width: 20 },
       { header: "Fecha de Actualización", key: "updatedAt", width: 18 },
@@ -143,6 +155,16 @@ export const exportAppointmentsToExcel = async (
           ? new Date(appointment.firstEvaluationDate + "T00:00:00")
           : "",
         cancellationReason: appointment.cancellationReason || "",
+        startedOnTime: appointment.satisfactionSurvey
+          ? appointment.satisfactionSurvey.startedOnTime
+            ? "Sí"
+            : "No"
+          : "",
+        respectfulTreatment: appointment.satisfactionSurvey
+          ? appointment.satisfactionSurvey.respectfulTreatment
+            ? "Sí"
+            : "No"
+          : "",
         createdAt: appointment.createdAt ? new Date(appointment.createdAt) : "",
         createdBy: appointment.createdBy || "",
         updatedAt: appointment.updatedAt ? new Date(appointment.updatedAt) : "",
@@ -224,6 +246,8 @@ export const exportAppointmentsToExcel = async (
       row.getCell("maritalStatus").alignment = { horizontal: "center" };
       row.getCell("previousApplications").alignment = { horizontal: "center" };
       row.getCell("hasDocument").alignment = { horizontal: "center" };
+      row.getCell("startedOnTime").alignment = { horizontal: "left" };
+      row.getCell("respectfulTreatment").alignment = { horizontal: "left" };
     });
 
     // Aplicar bordes a todas las celdas con datos
@@ -242,7 +266,7 @@ export const exportAppointmentsToExcel = async (
     // Agregar filtros automáticos
     worksheet.autoFilter = {
       from: "A1",
-      to: `X${filteredAppointments.length + 1}`,
+      to: `AE${filteredAppointments.length + 1}`,
     };
 
     // Congelar la primera fila
@@ -314,7 +338,7 @@ const getStatusDisplayName = (status: string): string => {
 // Función para validar rango de fechas
 export const validateDateRange = (
   startDate: string,
-  endDate: string
+  endDate: string,
 ): string | null => {
   if (!startDate && !endDate) {
     return null; // No hay rango especificado, es válido

@@ -24,6 +24,8 @@ import {
   Info,
   FileText,
   CheckCircle,
+  Eye,
+  Edit,
 } from "lucide-react";
 import type { Appointment } from "../types";
 import toast from "react-hot-toast";
@@ -43,6 +45,7 @@ const Appointments = () => {
     isLoading,
     deleteAppointment,
     updateAppointmentStatus,
+    saveAppointment,
   } = useAppointments();
   const { psychologists, isLoading: isLoadingPsychologists } =
     usePsychologists();
@@ -66,19 +69,23 @@ const Appointments = () => {
   // Estados para modales de confirmación
   const [appointmentToDelete, setAppointmentToDelete] =
     useState<Appointment | null>(null);
-  const [appointmentToChangeStatus, setAppointmentToChangeStatus] = useState<{
-    appointment: Appointment | null;
-    newStatus: Appointment["status"] | null;
-  }>({ appointment: null, newStatus: null });
-  const [cancellationReason, setCancellationReason] = useState("");
-
+  const [appointmentForSurvey, setAppointmentForSurvey] =
+    useState<Appointment | null>(null);
+  const [surveyData, setSurveyData] = useState({
+    startedOnTime: null as boolean | null,
+    respectfulTreatment: null as boolean | null,
+  });
+  const [appointmentForReason, setAppointmentForReason] =
+    useState<Appointment | null>(null);
+  const [cancellationReasonOption, setCancellationReasonOption] = useState("");
+  const [cancellationReasonOther, setCancellationReasonOther] = useState("");
   // Estado para modal de exportación
   const [showExportModal, setShowExportModal] = useState(false);
 
   // Debugging
 
   const userFilteredAppointments = appointments.filter(() =>
-    canUserViewAppointment(user, isAdmin, isCoordinator, isPsychologist)
+    canUserViewAppointment(user, isAdmin, isCoordinator, isPsychologist),
   );
 
   // Filtrar citas
@@ -140,7 +147,7 @@ const Appointments = () => {
   const endIndex = startIndex + itemsPerPage;
   const filteredAppointments = allFilteredAppointments.slice(
     startIndex,
-    endIndex
+    endIndex,
   );
 
   // Resetear página cuando cambian los filtros
@@ -161,7 +168,7 @@ const Appointments = () => {
       user,
       isAdmin,
       isCoordinator,
-      isPsychologist
+      isPsychologist,
     );
     if (!permissions.canDelete) {
       toast.error("No tienes permisos para eliminar citas");
@@ -172,14 +179,14 @@ const Appointments = () => {
 
   const handleStatusChange = (
     appointment: Appointment,
-    newStatus: Appointment["status"]
+    newStatus: Appointment["status"],
   ) => {
     const permissions = getAppointmentPermissions(
       appointment,
       user,
       isAdmin,
       isCoordinator,
-      isPsychologist
+      isPsychologist,
     );
 
     if (newStatus === "cancelled" && !permissions.canCancel) {
@@ -197,12 +204,6 @@ const Appointments = () => {
       return;
     }
 
-    if (newStatus === "cancelled" || newStatus === "no-show") {
-      setAppointmentToChangeStatus({ appointment, newStatus });
-      setCancellationReason("");
-      return;
-    }
-
     confirmChangeStatus(appointment, newStatus);
   };
 
@@ -213,7 +214,7 @@ const Appointments = () => {
       user,
       isAdmin,
       isCoordinator,
-      isPsychologist
+      isPsychologist,
     );
     if (!permissions.canComplete) {
       toast.error("No tienes permisos para completar citas");
@@ -234,26 +235,101 @@ const Appointments = () => {
   };
 
   const confirmChangeStatus = async (
-    appointment?: Appointment,
-    newStatus?: Appointment["status"]
+    appointment: Appointment,
+    newStatus: Appointment["status"],
   ) => {
-    const targetAppointment =
-      appointment || appointmentToChangeStatus.appointment;
-    const targetStatus = newStatus || appointmentToChangeStatus.newStatus;
-
-    if (!targetAppointment || !targetStatus) return;
-
     try {
-      await updateAppointmentStatus(targetAppointment.id, targetStatus, { cancellationReason });
-      setAppointmentToChangeStatus({ appointment: null, newStatus: null });
-      setCancellationReason("");
+      await updateAppointmentStatus(appointment.id, newStatus);
     } catch (error) {
       console.error("Error al cambiar estado de la cita:", error);
     }
   };
 
+  const handleSurveyClick = (appointment: Appointment) => {
+    setAppointmentForSurvey(appointment);
+    setSurveyData({
+      startedOnTime: appointment.satisfactionSurvey?.startedOnTime ?? null,
+      respectfulTreatment:
+        appointment.satisfactionSurvey?.respectfulTreatment ?? null,
+    });
+  };
+
+  const handleSaveSurvey = async () => {
+    if (!appointmentForSurvey) return;
+    if (
+      surveyData.startedOnTime === null ||
+      surveyData.respectfulTreatment === null
+    ) {
+      toast.error("Por favor, responda ambas preguntas.");
+      return;
+    }
+    try {
+      await saveAppointment({
+        id: appointmentForSurvey.id,
+        satisfactionSurvey: {
+          startedOnTime: surveyData.startedOnTime,
+          respectfulTreatment: surveyData.respectfulTreatment,
+        },
+      });
+      setAppointmentForSurvey(null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleReasonClick = (appointment: Appointment) => {
+    setAppointmentForReason(appointment);
+    const existingReason = appointment.cancellationReason || "";
+    const predefinedOptions = [
+      "Olvido de la cita.",
+      "Cruce de horarios.",
+      "Problemas de conexión u otros inconvenientes técnicos.",
+      "Falta de interés.",
+    ];
+    
+    if (predefinedOptions.includes(existingReason)) {
+      setCancellationReasonOption(existingReason);
+      setCancellationReasonOther("");
+    } else if (existingReason) {
+      setCancellationReasonOption("Otros (especificar).");
+      setCancellationReasonOther(existingReason);
+    } else {
+      setCancellationReasonOption("");
+      setCancellationReasonOther("");
+    }
+  };
+
+  const handleSaveReason = async () => {
+    if (!appointmentForReason) return;
+    
+    const finalReason = cancellationReasonOption === "Otros (especificar)." 
+      ? cancellationReasonOther.trim() 
+      : cancellationReasonOption;
+      
+    try {
+      await saveAppointment({
+        id: appointmentForReason.id,
+        cancellationReason: finalReason,
+      });
+      setAppointmentForReason(null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const cancelDelete = () => {
     setAppointmentToDelete(null);
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (selectedPsychologist) count++;
+    if (selectedProcess) count++;
+    if (selectedReason) count++;
+    if (selectedStatus) count++;
+    if (selectedDate) count++;
+    return count;
   };
 
   const handlePageChange = (page: number) => {
@@ -298,17 +374,6 @@ const Appointments = () => {
       }
     }
     return pages;
-  };
-
-  const getActiveFiltersCount = () => {
-    let count = 0;
-    if (searchTerm) count++;
-    if (selectedPsychologist) count++;
-    if (selectedProcess) count++;
-    if (selectedReason) count++;
-    if (selectedStatus) count++;
-    if (selectedDate) count++;
-    return count;
   };
 
   if (
@@ -617,7 +682,7 @@ const Appointments = () => {
                           >
                         | null
                         | undefined,
-                      index: Key | null | undefined
+                      index: Key | null | undefined,
                     ) => (
                       <button
                         key={index}
@@ -629,13 +694,13 @@ const Appointments = () => {
                           page === currentPage
                             ? "bg-blue-600 text-white border-blue-600"
                             : page === "..."
-                            ? "cursor-default"
-                            : "hover:bg-gray-50"
+                              ? "cursor-default"
+                              : "hover:bg-gray-50"
                         }`}
                       >
                         {page}
                       </button>
-                    )
+                    ),
                   )}
 
                   <button
@@ -689,7 +754,7 @@ const Appointments = () => {
                     <div className="space-y-1">
                       <div className="font-medium text-gray-900 text-sm">
                         {new Date(
-                          appointment.date + "T00:00:00"
+                          appointment.date + "T00:00:00",
                         ).toLocaleDateString("es-ES", {
                           day: "2-digit",
                           month: "2-digit",
@@ -751,7 +816,7 @@ const Appointments = () => {
                           user,
                           isAdmin,
                           isCoordinator,
-                          isPsychologist
+                          isPsychologist,
                         );
                         return (
                           permissions.canComplete && (
@@ -765,7 +830,6 @@ const Appointments = () => {
                           )
                         );
                       })()}
-
                       <AppointmentActionsMenu
                         appointment={appointment}
                         user={user}
@@ -774,6 +838,9 @@ const Appointments = () => {
                         isPsychologist={isPsychologist}
                         onDelete={handleDeleteClick}
                         onChangeStatus={handleStatusChange}
+                        onSurvey={handleSurveyClick}
+                        onReason={handleReasonClick}
+                        showPrimaryActions={false}
                       />
                     </div>
                   </div>
@@ -821,7 +888,7 @@ const Appointments = () => {
                           >
                         | null
                         | undefined,
-                      index: Key | null | undefined
+                      index: Key | null | undefined,
                     ) => (
                       <button
                         key={index}
@@ -833,13 +900,13 @@ const Appointments = () => {
                           page === currentPage
                             ? "bg-blue-600 text-white border-blue-600"
                             : page === "..."
-                            ? "cursor-default"
-                            : "hover:bg-gray-50"
+                              ? "cursor-default"
+                              : "hover:bg-gray-50"
                         }`}
                       >
                         {page}
                       </button>
-                    )
+                    ),
                   )}
 
                   <button
@@ -916,8 +983,145 @@ const Appointments = () => {
         </div>
       )}
 
-      {/* Modal de Cambio de Estado (Cancelación / No Asistió) */}
-      {appointmentToChangeStatus.appointment && (appointmentToChangeStatus.newStatus === "cancelled" || appointmentToChangeStatus.newStatus === "no-show") && (
+      {/* Modal Encuesta */}
+      {appointmentForSurvey && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <Eye className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                    <h3
+                      className="text-lg leading-6 font-medium text-gray-900"
+                      id="modal-title"
+                    >
+                      Encuesta de Satisfacción
+                    </h3>
+                    <div className="mt-4 space-y-4 text-left">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          ¿La atención inició a la hora programada? *
+                        </p>
+                        <div className="flex gap-4">
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name="startedOnTimeModal"
+                              checked={surveyData.startedOnTime === true}
+                              onChange={() =>
+                                setSurveyData((p) => ({
+                                  ...p,
+                                  startedOnTime: true,
+                                }))
+                              }
+                              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              Sí
+                            </span>
+                          </label>
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name="startedOnTimeModal"
+                              checked={surveyData.startedOnTime === false}
+                              onChange={() =>
+                                setSurveyData((p) => ({
+                                  ...p,
+                                  startedOnTime: false,
+                                }))
+                              }
+                              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              No
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          ¿El trato del profesional fue amable y respetuoso? *
+                        </p>
+                        <div className="flex gap-4">
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name="respectfulTreatmentModal"
+                              checked={surveyData.respectfulTreatment === true}
+                              onChange={() =>
+                                setSurveyData((p) => ({
+                                  ...p,
+                                  respectfulTreatment: true,
+                                }))
+                              }
+                              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              Sí
+                            </span>
+                          </label>
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name="respectfulTreatmentModal"
+                              checked={surveyData.respectfulTreatment === false}
+                              onChange={() =>
+                                setSurveyData((p) => ({
+                                  ...p,
+                                  respectfulTreatment: false,
+                                }))
+                              }
+                              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              No
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="btn btn-primary sm:ml-3"
+                  onClick={handleSaveSurvey}
+                >
+                  Guardar Encuesta
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary mt-3 sm:mt-0 sm:ml-3"
+                  onClick={() => setAppointmentForSurvey(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Motivo/Razón */}
+      {appointmentForReason && (
         <div className="fixed z-50 inset-0 overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div
@@ -936,31 +1140,45 @@ const Appointments = () => {
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
                   <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <AlertCircle className="h-6 w-6 text-amber-600" />
+                    <Edit className="h-6 w-6 text-amber-600" />
                   </div>
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                     <h3
                       className="text-lg leading-6 font-medium text-gray-900"
                       id="modal-title"
                     >
-                      {appointmentToChangeStatus.newStatus === "cancelled" ? "Cancelar cita" : "Marcar como 'No asistió'"}
+                      Motivo / Razón
                     </h3>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500 mb-3">
-                        Estás a punto de cambiar el estado de la cita de{" "}
-                        <strong>{appointmentToChangeStatus.appointment.client.fullName}</strong>.
+                        Especifique la razón de la{" "}
+                        {appointmentForReason.status === "cancelled"
+                          ? "cancelación"
+                          : "inasistencia"}{" "}
+                        de{" "}
+                        <strong>{appointmentForReason.client.fullName}</strong>.
                       </p>
-                      <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">
-                        Motivo / Razón (Requerido)
-                      </label>
-                      <textarea
-                        id="reason"
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Especifique el motivo..."
-                        value={cancellationReason}
-                        onChange={(e) => setCancellationReason(e.target.value)}
-                      ></textarea>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                        value={cancellationReasonOption}
+                        onChange={(e) => setCancellationReasonOption(e.target.value)}
+                      >
+                        <option value="">Seleccione una razón...</option>
+                        <option value="Olvido de la cita.">Olvido de la cita.</option>
+                        <option value="Cruce de horarios.">Cruce de horarios.</option>
+                        <option value="Problemas de conexión u otros inconvenientes técnicos.">Problemas de conexión u otros inconvenientes técnicos.</option>
+                        <option value="Falta de interés.">Falta de interés.</option>
+                        <option value="Otros (especificar).">Otros (especificar).</option>
+                      </select>
+                      {cancellationReasonOption === "Otros (especificar)." && (
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Especifique el motivo..."
+                          value={cancellationReasonOther}
+                          onChange={(e) => setCancellationReasonOther(e.target.value)}
+                        ></textarea>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -969,15 +1187,19 @@ const Appointments = () => {
                 <button
                   type="button"
                   className="btn btn-primary sm:ml-3 disabled:opacity-50"
-                  onClick={() => confirmChangeStatus()}
-                  disabled={cancellationReason.trim().length === 0}
+                  onClick={handleSaveReason}
+                  disabled={
+                    !cancellationReasonOption ||
+                    (cancellationReasonOption === "Otros (especificar)." &&
+                      cancellationReasonOther.trim().length === 0)
+                  }
                 >
-                  Confirmar
+                  Guardar
                 </button>
                 <button
                   type="button"
                   className="btn btn-secondary mt-3 sm:mt-0 sm:ml-3"
-                  onClick={() => setAppointmentToChangeStatus({ appointment: null, newStatus: null })}
+                  onClick={() => setAppointmentForReason(null)}
                 >
                   Cancelar
                 </button>
