@@ -1,3 +1,7 @@
+import type { UseQueryResult } from "@tanstack/react-query";
+
+// ─── Tipos base ────────────────────────────────────────────────────────────────
+
 // Tipos de usuario
 export interface User {
   id: string;
@@ -19,27 +23,6 @@ export interface AuthContextType {
   loginWithGoogle: () => Promise<any>;
   logout: () => Promise<void>;
   createUser: (userData: Partial<User>) => Promise<boolean>;
-}
-
-// Tipos para los hooks de usuarios
-export interface UsersHookReturn {
-  users: User[];
-  isLoading: boolean;
-  isError: boolean;
-  error: Error | null;
-  userByIdQuery: (id: string | undefined) => any;
-  saveUser: (userData: Partial<User>) => void;
-  updateUserRole: ({
-    userId,
-    newRole,
-  }: {
-    userId: string;
-    newRole: "admin" | "coordinator" | "psychologist" | "user";
-  }) => void;
-  deleteUser: (id: string) => void;
-  isSaving: boolean;
-  isUpdatingRole: boolean;
-  isDeleting: boolean;
 }
 
 // Psicólogo
@@ -182,13 +165,33 @@ export interface Appointment {
   updatedBy?: string;
 }
 
+// ─── Tipos de retorno de hooks ─────────────────────────────────────────────────
+
+// Hooks para usuarios
+export interface UsersHookReturn {
+  users: User[];
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  useUserByIdQuery: (id?: string) => UseQueryResult<User | null>;
+  saveUser: (userData: Partial<User>) => void;
+  updateUserRole: (args: {
+    userId: string;
+    newRole: "admin" | "coordinator" | "psychologist" | "user";
+  }) => void;
+  deleteUser: (id: string) => void;
+  isSaving: boolean;
+  isUpdatingRole: boolean;
+  isDeleting: boolean;
+}
+
 // Hooks para psicólogos
 export interface PsychologistsHookReturn {
   psychologists: Psychologist[];
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
-  psychologistByIdQuery: (id: string | undefined) => any;
+  usePsychologistByIdQuery: (id?: string) => UseQueryResult<Psychologist | null>;
   savePsychologist: (data: Partial<Psychologist>) => void;
   deletePsychologist: (id: string) => void;
   isSaving: boolean;
@@ -201,7 +204,7 @@ export interface ProcessesHookReturn {
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
-  processByIdQuery: (id: string | undefined) => any;
+  useProcessByIdQuery: (id?: string) => UseQueryResult<Process | null>;
   saveProcess: (data: Partial<Process>) => void;
   deleteProcess: (id: string) => void;
   toggleProcessStatus: (id: string, isActive: boolean) => void;
@@ -216,7 +219,9 @@ export interface ConsultationReasonsHookReturn {
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
-  reasonByIdQuery: (id: string | undefined) => any;
+  useConsultationReasonByIdQuery: (
+    id?: string
+  ) => UseQueryResult<ConsultationReason | null>;
   saveReason: (data: Partial<ConsultationReason>) => void;
   deleteReason: (id: string) => void;
   toggleReasonStatus: (id: string, isActive: boolean) => void;
@@ -231,7 +236,7 @@ export interface AppointmentsHookReturn {
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
-  appointmentByIdQuery: (id: string | undefined) => any;
+  useAppointmentByIdQuery: (id?: string) => UseQueryResult<Appointment | null>;
   saveAppointment: (data: Partial<Appointment>) => void;
   deleteAppointment: (id: string) => void;
   updateAppointmentStatus: (

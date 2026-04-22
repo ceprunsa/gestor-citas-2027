@@ -1,10 +1,8 @@
-"use client";
-
 import type React from "react";
 
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAppointments } from "../hooks/useAppointments";
+import { useAppointments, useAppointmentByIdQuery } from "../hooks/useAppointments";
 import { usePsychologists } from "../hooks/usePsychologists";
 import { useProcesses } from "../hooks/useProcesses";
 import { useConsultationReasons } from "../hooks/useConsultationReasons";
@@ -26,7 +24,7 @@ import type { Appointment, Client } from "../types";
 const AppointmentForm = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { appointmentByIdQuery, saveAppointment, isSaving } = useAppointments();
+  const { saveAppointment, isSaving } = useAppointments();
   const { psychologists, isLoading: isLoadingPsychologists } =
     usePsychologists();
   const { processes, isLoading: isLoadingProcesses } = useProcesses();
@@ -34,7 +32,7 @@ const AppointmentForm = () => {
   const { isAdmin, isCoordinator, isPsychologist } = useAuth();
 
   const { data: existingAppointment, isLoading: isLoadingAppointment } =
-    appointmentByIdQuery(id);
+    useAppointmentByIdQuery(id);
   const [copied, setCopied] = useState(false);
 
   // Estado inicial para el formulario

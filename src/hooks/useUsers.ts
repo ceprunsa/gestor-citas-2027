@@ -1,5 +1,3 @@
-"use client";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   collection,
@@ -12,36 +10,38 @@ import {
 import { db } from "../firebase/config";
 import { useAuth } from "./useAuth";
 import type { User, UsersHookReturn } from "../types";
-import { useMemo } from "react";
 import toast from "react-hot-toast";
 
+// ─── Query keys ────────────────────────────────────────────────────────────────
+export const USER_QUERY_KEYS = {
+  all: ["users"] as const,
+  byId: (id?: string) => ["users", id] as const,
+};
+
+// ─── Fetchers (reutilizables fuera del hook si se necesita) ────────────────────
+export const fetchUsers = async (): Promise<User[]> => {
+  const snapshot = await getDocs(collection(db, "users"));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as User));
+};
+
+export const fetchUserById = async (id?: string): Promise<User | null> => {
+  if (!id) return null;
+  const docSnap = await getDoc(doc(db, "users", id));
+  return docSnap.exists() ? ({ id: docSnap.id, ...docSnap.data() } as User) : null;
+};
+
+// ─── Hook standalone para obtener un usuario por ID ───────────────────────────
+export const useUserByIdQuery = (id?: string) =>
+  useQuery({
+    queryKey: USER_QUERY_KEYS.byId(id),
+    queryFn: () => fetchUserById(id),
+    enabled: !!id,
+  });
+
+// ─── Hook principal ────────────────────────────────────────────────────────────
 export const useUsers = (): UsersHookReturn => {
   const queryClient = useQueryClient();
   const { createUser } = useAuth();
-
-  // Obtener todos los usuarios
-  const getUsers = async (): Promise<User[]> => {
-    const usersRef = collection(db, "users");
-    const snapshot = await getDocs(usersRef);
-    return snapshot.docs.map(
-      (doc) =>
-        ({
-          id: doc.id,
-          ...doc.data(),
-        } as User)
-    );
-  };
-
-  // Obtener un usuario por ID
-  const getUserById = async (id?: string): Promise<User | null> => {
-    if (!id) return null;
-    const docRef = doc(db, "users", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as User;
-    }
-    return null;
-  };
 
   // Crear o actualizar usuario
   const saveUser = async (userData: Partial<User>): Promise<Partial<User>> => {
@@ -49,14 +49,12 @@ export const useUsers = (): UsersHookReturn => {
       throw new Error("El correo electrónico es requerido");
     }
 
-    // Asegurarse de que el rol sea del tipo correcto
     const validatedUserData: Partial<User> = {
       ...userData,
       role: userData.role as "admin" | "coordinator" | "psychologist" | "user",
     };
 
     try {
-      // Crear usuario en Firestore
       await createUser(validatedUserData);
       toast.success(`Usuario ${userData.email} creado exitosamente`);
       return validatedUserData;
@@ -77,22 +75,16 @@ export const useUsers = (): UsersHookReturn => {
     userId: string;
     newRole: "admin" | "coordinator" | "psychologist" | "user";
   }): Promise<void> => {
+    const roleLabels: Record<typeof newRole, string> = {
+      admin: "Administrador",
+      coordinator: "Coordinador",
+      psychologist: "Psicólogo",
+      user: "Usuario",
+    };
+
     try {
-      const userRef = doc(db, "users", userId);
-      await updateDoc(userRef, {
-        role: newRole,
-      });
-      toast.success(
-        `Rol actualizado exitosamente a ${
-          newRole === "admin"
-            ? "Administrador"
-            : newRole === "coordinator"
-            ? "Coordinador"
-            : newRole === "psychologist"
-            ? "Psicólogo"
-            : "Usuario"
-        }`
-      );
+      await updateDoc(doc(db, "users", userId), { role: newRole });
+      toast.success(`Rol actualizado exitosamente a ${roleLabels[newRole]}`);
     } catch (error) {
       console.error("Error al actualizar rol:", error);
       toast.error(
@@ -117,54 +109,33 @@ export const useUsers = (): UsersHookReturn => {
     }
   };
 
-  // React Query hooks
+  // ─── React Query ────────────────────────────────────────────────────────────
   const usersQuery = useQuery({
-    queryKey: ["users"],
-    queryFn: getUsers,
+    queryKey: USER_QUERY_KEYS.all,
+    queryFn: fetchUsers,
   });
-
-  const userByIdQueryFn = async (id?: string) => {
-    if (!id) return null;
-    return getUserById(id);
-  };
-
-  const userByIdQuery = (id?: string) => {
-    return useQuery({
-      queryKey: ["users", id],
-      queryFn: () => userByIdQueryFn(id),
-      enabled: !!id,
-    });
-  };
 
   const saveUserMutation = useMutation({
     mutationFn: saveUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.all }),
   });
 
   const updateRoleMutation = useMutation({
     mutationFn: updateUserRole,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.all }),
   });
 
   const deleteUserMutation = useMutation({
     mutationFn: deleteUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.all }),
   });
 
-  const memoizedUserByIdQuery = useMemo(() => userByIdQuery, []);
-
   return {
-    users: usersQuery.data || [],
+    users: usersQuery.data ?? [],
     isLoading: usersQuery.isLoading,
     isError: usersQuery.isError,
     error: usersQuery.error as Error | null,
-    userByIdQuery: memoizedUserByIdQuery,
+    useUserByIdQuery,
     saveUser: saveUserMutation.mutate,
     updateUserRole: updateRoleMutation.mutate,
     deleteUser: deleteUserMutation.mutate,

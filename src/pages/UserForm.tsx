@@ -1,8 +1,6 @@
-"use client";
-
 import { useState, useEffect, type FormEvent, type ChangeEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useUsers } from "../hooks/useUsers";
+import { useUsers, useUserByIdQuery } from "../hooks/useUsers";
 import toast from "react-hot-toast";
 import type { User } from "../types";
 import { Save, X } from "lucide-react";
@@ -10,8 +8,8 @@ import { Save, X } from "lucide-react";
 const UserForm = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { userByIdQuery, saveUser, isSaving } = useUsers();
-  const { data: existingUser, isLoading } = userByIdQuery(id);
+  const { saveUser, isSaving } = useUsers();
+  const { data: existingUser, isLoading } = useUserByIdQuery(id);
 
   const [formData, setFormData] = useState<Partial<User>>({
     email: "",

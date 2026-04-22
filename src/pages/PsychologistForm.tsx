@@ -1,10 +1,8 @@
-"use client";
-
 import type React from "react";
 
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { usePsychologists } from "../hooks/usePsychologists";
+import { usePsychologists, usePsychologistByIdQuery } from "../hooks/usePsychologists";
 import { useUsers } from "../hooks/useUsers";
 import { Save, X, User, Mail, Phone, BadgeIcon as IdCard } from "lucide-react";
 import toast from "react-hot-toast";
@@ -13,11 +11,10 @@ import type { Psychologist } from "../types";
 const PsychologistForm = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { psychologistByIdQuery, savePsychologist, isSaving } =
-    usePsychologists();
+  const { savePsychologist, isSaving } = usePsychologists();
   const { users, isLoading: isLoadingUsers } = useUsers();
   const { data: existingPsychologist, isLoading: isLoadingPsychologist } =
-    psychologistByIdQuery(id);
+    usePsychologistByIdQuery(id);
 
   // Estado inicial para el formulario
   const [formData, setFormData] = useState<Partial<Psychologist>>({

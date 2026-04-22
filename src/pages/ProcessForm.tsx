@@ -1,10 +1,8 @@
-"use client";
-
 import type React from "react";
 
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useProcesses } from "../hooks/useProcesses";
+import { useProcesses, useProcessByIdQuery } from "../hooks/useProcesses";
 import {
   Save,
   X,
@@ -19,8 +17,8 @@ import type { Process } from "../types";
 const ProcessForm = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { processByIdQuery, saveProcess, isSaving } = useProcesses();
-  const { data: existingProcess, isLoading } = processByIdQuery(id);
+  const { saveProcess, isSaving } = useProcesses();
+  const { data: existingProcess, isLoading } = useProcessByIdQuery(id);
 
   // Estado inicial para el formulario
   const [formData, setFormData] = useState<Partial<Process>>({

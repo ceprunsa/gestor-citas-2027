@@ -1,10 +1,8 @@
-"use client";
-
 import type React from "react";
 
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useConsultationReasons } from "../hooks/useConsultationReasons";
+import { useConsultationReasons, useConsultationReasonByIdQuery } from "../hooks/useConsultationReasons";
 import { Save, X, FileText, ToggleLeft, ToggleRight } from "lucide-react";
 import toast from "react-hot-toast";
 import type { ConsultationReason } from "../types";
@@ -12,8 +10,8 @@ import type { ConsultationReason } from "../types";
 const ConsultationReasonForm = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { reasonByIdQuery, saveReason, isSaving } = useConsultationReasons();
-  const { data: existingReason, isLoading } = reasonByIdQuery(id);
+  const { saveReason, isSaving } = useConsultationReasons();
+  const { data: existingReason, isLoading } = useConsultationReasonByIdQuery(id);
 
   // Estado inicial para el formulario
   const [formData, setFormData] = useState<Partial<ConsultationReason>>({

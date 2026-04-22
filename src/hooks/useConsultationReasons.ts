@@ -1,5 +1,3 @@
-"use client";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   collection,
@@ -16,38 +14,46 @@ import type {
   ConsultationReason,
   ConsultationReasonsHookReturn,
 } from "../types";
-import { useMemo } from "react";
 import toast from "react-hot-toast";
 
+// ─── Query keys ────────────────────────────────────────────────────────────────
+export const REASON_QUERY_KEYS = {
+  all: ["consultation_reasons"] as const,
+  byId: (id?: string) => ["consultation_reasons", id] as const,
+};
+
+// ─── Fetchers ──────────────────────────────────────────────────────────────────
+export const fetchConsultationReasons = async (): Promise<
+  ConsultationReason[]
+> => {
+  const snapshot = await getDocs(collection(db, "consultation_reasons"));
+  return snapshot.docs.map(
+    (d) => ({ id: d.id, ...d.data() } as ConsultationReason)
+  );
+};
+
+export const fetchConsultationReasonById = async (
+  id?: string
+): Promise<ConsultationReason | null> => {
+  if (!id) return null;
+  const docSnap = await getDoc(doc(db, "consultation_reasons", id));
+  return docSnap.exists()
+    ? ({ id: docSnap.id, ...docSnap.data() } as ConsultationReason)
+    : null;
+};
+
+// ─── Hook standalone por ID ────────────────────────────────────────────────────
+export const useConsultationReasonByIdQuery = (id?: string) =>
+  useQuery({
+    queryKey: REASON_QUERY_KEYS.byId(id),
+    queryFn: () => fetchConsultationReasonById(id),
+    enabled: !!id,
+  });
+
+// ─── Hook principal ────────────────────────────────────────────────────────────
 export const useConsultationReasons = (): ConsultationReasonsHookReturn => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-
-  // Obtener todos los motivos de consulta
-  const getReasons = async (): Promise<ConsultationReason[]> => {
-    const reasonsRef = collection(db, "consultation_reasons");
-    const snapshot = await getDocs(reasonsRef);
-    return snapshot.docs.map(
-      (doc) =>
-        ({
-          id: doc.id,
-          ...doc.data(),
-        } as ConsultationReason)
-    );
-  };
-
-  // Obtener un motivo de consulta por ID
-  const getReasonById = async (
-    id?: string
-  ): Promise<ConsultationReason | null> => {
-    if (!id) return null;
-    const docRef = doc(db, "consultation_reasons", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as ConsultationReason;
-    }
-    return null;
-  };
 
   // Crear o actualizar motivo de consulta
   const saveReason = async (
@@ -55,27 +61,21 @@ export const useConsultationReasons = (): ConsultationReasonsHookReturn => {
   ): Promise<ConsultationReason> => {
     try {
       if (data.id) {
-        // Actualizar motivo existente
-        const reasonRef = doc(db, "consultation_reasons", data.id);
-        await updateDoc(reasonRef, {
+        await updateDoc(doc(db, "consultation_reasons", data.id), {
           ...data,
           updatedAt: new Date().toISOString(),
-          updatedBy: user?.email || "system",
+          updatedBy: user?.email ?? "system",
         });
         toast.success("Motivo de consulta actualizado exitosamente");
         return { ...data, id: data.id } as ConsultationReason;
       } else {
-        // Crear nuevo motivo
-        const newReasonRef = await addDoc(
-          collection(db, "consultation_reasons"),
-          {
-            ...data,
-            createdAt: new Date().toISOString(),
-            createdBy: user?.email || "system",
-          }
-        );
+        const newRef = await addDoc(collection(db, "consultation_reasons"), {
+          ...data,
+          createdAt: new Date().toISOString(),
+          createdBy: user?.email ?? "system",
+        });
         toast.success("Motivo de consulta creado exitosamente");
-        return { ...data, id: newReasonRef.id } as ConsultationReason;
+        return { ...data, id: newRef.id } as ConsultationReason;
       }
     } catch (error) {
       console.error("Error al guardar motivo de consulta:", error);
@@ -111,16 +111,13 @@ export const useConsultationReasons = (): ConsultationReasonsHookReturn => {
     isActive: boolean
   ): Promise<string> => {
     try {
-      const reasonRef = doc(db, "consultation_reasons", id);
-      await updateDoc(reasonRef, {
+      await updateDoc(doc(db, "consultation_reasons", id), {
         isActive,
         updatedAt: new Date().toISOString(),
-        updatedBy: user?.email || "system",
+        updatedBy: user?.email ?? "system",
       });
       toast.success(
-        `Motivo de consulta ${
-          isActive ? "activado" : "desactivado"
-        } exitosamente`
+        `Motivo de consulta ${isActive ? "activado" : "desactivado"} exitosamente`
       );
       return id;
     } catch (error) {
@@ -134,55 +131,37 @@ export const useConsultationReasons = (): ConsultationReasonsHookReturn => {
     }
   };
 
-  // React Query hooks
+  // ─── React Query ────────────────────────────────────────────────────────────
   const reasonsQuery = useQuery({
-    queryKey: ["consultation_reasons"],
-    queryFn: getReasons,
+    queryKey: REASON_QUERY_KEYS.all,
+    queryFn: fetchConsultationReasons,
   });
-
-  const reasonByIdQueryFn = async (id?: string) => {
-    if (!id) return null;
-    return getReasonById(id);
-  };
-
-  const reasonByIdQuery = (id?: string) => {
-    return useQuery({
-      queryKey: ["consultation_reasons", id],
-      queryFn: () => reasonByIdQueryFn(id),
-      enabled: !!id,
-    });
-  };
 
   const saveReasonMutation = useMutation({
     mutationFn: saveReason,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["consultation_reasons"] });
-    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: REASON_QUERY_KEYS.all }),
   });
 
   const deleteReasonMutation = useMutation({
     mutationFn: deleteReason,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["consultation_reasons"] });
-    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: REASON_QUERY_KEYS.all }),
   });
 
   const toggleReasonStatusMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       toggleReasonStatus(id, isActive),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["consultation_reasons"] });
-    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: REASON_QUERY_KEYS.all }),
   });
 
-  const memoizedReasonByIdQuery = useMemo(() => reasonByIdQuery, []);
-
   return {
-    reasons: reasonsQuery.data || [],
+    reasons: reasonsQuery.data ?? [],
     isLoading: reasonsQuery.isLoading,
     isError: reasonsQuery.isError,
     error: reasonsQuery.error as Error | null,
-    reasonByIdQuery: memoizedReasonByIdQuery,
+    useConsultationReasonByIdQuery,
     saveReason: saveReasonMutation.mutate,
     deleteReason: deleteReasonMutation.mutate,
     toggleReasonStatus: (id: string, isActive: boolean) =>

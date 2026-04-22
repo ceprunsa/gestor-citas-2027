@@ -1,7 +1,6 @@
-"use client";
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useAppointments } from "../hooks/useAppointments";
+import { useAppointments, useAppointmentByIdQuery } from "../hooks/useAppointments";
 import { useAuth } from "../hooks/useAuth";
 import {
   Calendar,
@@ -32,7 +31,6 @@ const AppointmentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const {
-    appointmentByIdQuery,
     deleteAppointment,
     updateAppointmentStatus,
     uploadDocument,
@@ -40,7 +38,7 @@ const AppointmentDetails = () => {
   } = useAppointments();
   const { isAdmin, isCoordinator } = useAuth();
 
-  const { data: appointment, isLoading, isError } = appointmentByIdQuery(id);
+  const { data: appointment, isLoading, isError } = useAppointmentByIdQuery(id);
 
   // Estados para modales
   const [showDeleteModal, setShowDeleteModal] = useState(false);

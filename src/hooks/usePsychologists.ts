@@ -1,5 +1,3 @@
-"use client";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   collection,
@@ -13,38 +11,42 @@ import {
 import { db } from "../firebase/config";
 import { useAuth } from "./useAuth";
 import type { Psychologist, PsychologistsHookReturn } from "../types";
-import { useMemo } from "react";
 import toast from "react-hot-toast";
 
+// ─── Query keys ────────────────────────────────────────────────────────────────
+export const PSYCHOLOGIST_QUERY_KEYS = {
+  all: ["psychologists"] as const,
+  byId: (id?: string) => ["psychologists", id] as const,
+};
+
+// ─── Fetchers ──────────────────────────────────────────────────────────────────
+export const fetchPsychologists = async (): Promise<Psychologist[]> => {
+  const snapshot = await getDocs(collection(db, "psychologists"));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Psychologist));
+};
+
+export const fetchPsychologistById = async (
+  id?: string
+): Promise<Psychologist | null> => {
+  if (!id) return null;
+  const docSnap = await getDoc(doc(db, "psychologists", id));
+  return docSnap.exists()
+    ? ({ id: docSnap.id, ...docSnap.data() } as Psychologist)
+    : null;
+};
+
+// ─── Hook standalone por ID ────────────────────────────────────────────────────
+export const usePsychologistByIdQuery = (id?: string) =>
+  useQuery({
+    queryKey: PSYCHOLOGIST_QUERY_KEYS.byId(id),
+    queryFn: () => fetchPsychologistById(id),
+    enabled: !!id,
+  });
+
+// ─── Hook principal ────────────────────────────────────────────────────────────
 export const usePsychologists = (): PsychologistsHookReturn => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-
-  // Obtener todos los psicólogos
-  const getPsychologists = async (): Promise<Psychologist[]> => {
-    const psychologistsRef = collection(db, "psychologists");
-    const snapshot = await getDocs(psychologistsRef);
-    return snapshot.docs.map(
-      (doc) =>
-        ({
-          id: doc.id,
-          ...doc.data(),
-        } as Psychologist)
-    );
-  };
-
-  // Obtener un psicólogo por ID
-  const getPsychologistById = async (
-    id?: string
-  ): Promise<Psychologist | null> => {
-    if (!id) return null;
-    const docRef = doc(db, "psychologists", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Psychologist;
-    }
-    return null;
-  };
 
   // Crear o actualizar psicólogo
   const savePsychologist = async (
@@ -52,27 +54,21 @@ export const usePsychologists = (): PsychologistsHookReturn => {
   ): Promise<Psychologist> => {
     try {
       if (data.id) {
-        // Actualizar psicólogo existente
-        const psychologistRef = doc(db, "psychologists", data.id);
-        await updateDoc(psychologistRef, {
+        await updateDoc(doc(db, "psychologists", data.id), {
           ...data,
           updatedAt: new Date().toISOString(),
-          updatedBy: user?.email || "system",
+          updatedBy: user?.email ?? "system",
         });
         toast.success("Psicólogo actualizado exitosamente");
         return { ...data, id: data.id } as Psychologist;
       } else {
-        // Crear nuevo psicólogo
-        const newPsychologistRef = await addDoc(
-          collection(db, "psychologists"),
-          {
-            ...data,
-            createdAt: new Date().toISOString(),
-            createdBy: user?.email || "system",
-          }
-        );
+        const newRef = await addDoc(collection(db, "psychologists"), {
+          ...data,
+          createdAt: new Date().toISOString(),
+          createdBy: user?.email ?? "system",
+        });
         toast.success("Psicólogo creado exitosamente");
-        return { ...data, id: newPsychologistRef.id } as Psychologist;
+        return { ...data, id: newRef.id } as Psychologist;
       }
     } catch (error) {
       console.error("Error al guardar psicólogo:", error);
@@ -98,50 +94,30 @@ export const usePsychologists = (): PsychologistsHookReturn => {
     }
   };
 
-  // React Query hooks
+  // ─── React Query ────────────────────────────────────────────────────────────
   const psychologistsQuery = useQuery({
-    queryKey: ["psychologists"],
-    queryFn: getPsychologists,
+    queryKey: PSYCHOLOGIST_QUERY_KEYS.all,
+    queryFn: fetchPsychologists,
   });
-
-  const psychologistByIdQueryFn = async (id?: string) => {
-    if (!id) return null;
-    return getPsychologistById(id);
-  };
-
-  const psychologistByIdQuery = (id?: string) => {
-    return useQuery({
-      queryKey: ["psychologists", id],
-      queryFn: () => psychologistByIdQueryFn(id),
-      enabled: !!id,
-    });
-  };
 
   const savePsychologistMutation = useMutation({
     mutationFn: savePsychologist,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["psychologists"] });
-    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: PSYCHOLOGIST_QUERY_KEYS.all }),
   });
 
   const deletePsychologistMutation = useMutation({
     mutationFn: deletePsychologist,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["psychologists"] });
-    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: PSYCHOLOGIST_QUERY_KEYS.all }),
   });
 
-  const memoizedPsychologistByIdQuery = useMemo(
-    () => psychologistByIdQuery,
-    [psychologistByIdQuery]
-  );
-
   return {
-    psychologists: psychologistsQuery.data || [],
+    psychologists: psychologistsQuery.data ?? [],
     isLoading: psychologistsQuery.isLoading,
     isError: psychologistsQuery.isError,
     error: psychologistsQuery.error as Error | null,
-    psychologistByIdQuery: memoizedPsychologistByIdQuery,
+    usePsychologistByIdQuery,
     savePsychologist: savePsychologistMutation.mutate,
     deletePsychologist: deletePsychologistMutation.mutate,
     isSaving: savePsychologistMutation.isPending,
