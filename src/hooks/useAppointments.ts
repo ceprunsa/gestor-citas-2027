@@ -44,13 +44,13 @@ const STATUS_LABELS: Record<Appointment["status"], string> = {
 
 const validateStatusTransition = (
   currentStatus: Appointment["status"],
-  newStatus: Appointment["status"]
+  newStatus: Appointment["status"],
 ): boolean =>
   VALID_STATUS_TRANSITIONS[currentStatus]?.includes(newStatus) ?? false;
 
 // ─── Fetchers ──────────────────────────────────────────────────────────────────
 export const fetchAppointmentById = async (
-  id?: string
+  id?: string,
 ): Promise<Appointment | null> => {
   if (!id) return null;
   const docSnap = await getDoc(doc(db, "appointments", id));
@@ -78,10 +78,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
 
     if (isPsychologist && user) {
       const psychologistSnapshot = await getDocs(
-        query(
-          collection(db, "psychologists"),
-          where("userId", "==", user.id)
-        )
+        query(collection(db, "psychologists"), where("userId", "==", user.id)),
       );
 
       if (psychologistSnapshot.empty) {
@@ -91,21 +88,19 @@ export const useAppointments = (): AppointmentsHookReturn => {
       const psychologistId = psychologistSnapshot.docs[0].id;
       appointmentsQuery = query(
         collection(db, "appointments"),
-        where("psychologistId", "==", psychologistId)
+        where("psychologistId", "==", psychologistId),
       );
     } else {
       appointmentsQuery = collection(db, "appointments");
     }
 
     const snapshot = await getDocs(appointmentsQuery);
-    return snapshot.docs.map(
-      (d) => ({ id: d.id, ...d.data() } as Appointment)
-    );
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Appointment);
   };
 
   // Crear o actualizar cita
   const saveAppointment = async (
-    data: Partial<Appointment>
+    data: Partial<Appointment>,
   ): Promise<Appointment> => {
     try {
       if (data.id) {
@@ -116,9 +111,9 @@ export const useAppointments = (): AppointmentsHookReturn => {
             user,
             isAdmin,
             isCoordinator,
-            isPsychologist
+            isPsychologist,
           );
-          if (!permissions.canEdit) {
+          if (!permissions.canEdit && !permissions.canEditReason) {
             throw new Error("No tienes permisos para editar esta cita");
           }
         }
@@ -147,7 +142,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
     } catch (error) {
       console.error("Error al guardar cita:", error);
       toast.error(
-        error instanceof Error ? error.message : "Error al guardar cita"
+        error instanceof Error ? error.message : "Error al guardar cita",
       );
       throw error;
     }
@@ -163,7 +158,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
           user,
           isAdmin,
           isCoordinator,
-          isPsychologist
+          isPsychologist,
         );
         if (!permissions.canDelete) {
           throw new Error("No tienes permisos para eliminar esta cita");
@@ -176,7 +171,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
     } catch (error) {
       console.error("Error al eliminar cita:", error);
       toast.error(
-        error instanceof Error ? error.message : "Error al eliminar cita"
+        error instanceof Error ? error.message : "Error al eliminar cita",
       );
       throw error;
     }
@@ -186,7 +181,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
   const updateAppointmentStatus = async (
     id: string,
     status: Appointment["status"],
-    completionData?: Partial<Appointment>
+    completionData?: Partial<Appointment>,
   ): Promise<string> => {
     if (!user) throw new Error("Usuario no autenticado");
 
@@ -198,7 +193,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
       user,
       isAdmin,
       isCoordinator,
-      isPsychologist
+      isPsychologist,
     );
 
     const permissionChecks: Partial<Record<Appointment["status"], boolean>> = {
@@ -221,14 +216,14 @@ export const useAppointments = (): AppointmentsHookReturn => {
     if (status === "completed") {
       if (!completionData || !isCompletionDataValid(completionData)) {
         throw new Error(
-          "Todos los campos demográficos y académicos son requeridos para completar la cita"
+          "Todos los campos demográficos y académicos son requeridos para completar la cita",
         );
       }
     }
 
     if (!validateStatusTransition(currentAppointment.status, status)) {
       throw new Error(
-        `No se puede cambiar de "${STATUS_LABELS[currentAppointment.status]}" a "${STATUS_LABELS[status]}"`
+        `No se puede cambiar de "${STATUS_LABELS[currentAppointment.status]}" a "${STATUS_LABELS[status]}"`,
       );
     }
 
@@ -236,7 +231,10 @@ export const useAppointments = (): AppointmentsHookReturn => {
       await updateDoc(doc(db, "appointments", id), {
         status,
         ...(status === "completed" && completionData ? completionData : {}),
-        ...((status === "cancelled" || status === "no-show") && completionData?.cancellationReason ? { cancellationReason: completionData.cancellationReason } : {}),
+        ...((status === "cancelled" || status === "no-show") &&
+        completionData?.cancellationReason
+          ? { cancellationReason: completionData.cancellationReason }
+          : {}),
         updatedAt: new Date().toISOString(),
         updatedBy: user.email ?? "system",
       });
@@ -248,7 +246,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Error al actualizar estado de la cita"
+          : "Error al actualizar estado de la cita",
       );
       throw error;
     }
@@ -257,7 +255,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
   // Subir documento PDF a una cita
   const uploadDocumentToAppointment = async (
     appointmentId: string,
-    file: File
+    file: File,
   ): Promise<void> => {
     if (!user?.email) throw new Error("Usuario no autenticado");
 
@@ -268,11 +266,11 @@ export const useAppointments = (): AppointmentsHookReturn => {
         user,
         isAdmin,
         isCoordinator,
-        isPsychologist
+        isPsychologist,
       );
       if (!permissions.canView) {
         throw new Error(
-          "No tienes permisos para gestionar documentos de esta cita"
+          "No tienes permisos para gestionar documentos de esta cita",
         );
       }
       if (currentAppointment.status !== "completed") {
@@ -284,7 +282,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
       const documentInfo = await uploadPDFDocument(
         file,
         appointmentId,
-        user.email
+        user.email,
       );
 
       await updateDoc(doc(db, "appointments", appointmentId), {
@@ -297,7 +295,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
     } catch (error) {
       console.error("Error al subir documento:", error);
       toast.error(
-        error instanceof Error ? error.message : "Error al subir documento"
+        error instanceof Error ? error.message : "Error al subir documento",
       );
       throw error;
     }
@@ -355,7 +353,7 @@ export const useAppointments = (): AppointmentsHookReturn => {
 
   const filterByDateRange = (
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Appointment[] =>
     appointments.filter((a) => a.date >= startDate && a.date <= endDate);
 
@@ -373,9 +371,8 @@ export const useAppointments = (): AppointmentsHookReturn => {
     updateAppointmentStatus: (
       id: string,
       status: Appointment["status"],
-      completionData?: Partial<Appointment>
-    ) =>
-      updateAppointmentStatusMutation.mutate({ id, status, completionData }),
+      completionData?: Partial<Appointment>,
+    ) => updateAppointmentStatusMutation.mutate({ id, status, completionData }),
     uploadDocument: uploadDocumentMutation.mutate,
     isSaving: saveAppointmentMutation.isPending,
     isDeleting: deleteAppointmentMutation.isPending,

@@ -4,12 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   MoreVertical,
-  Eye,
   Edit,
   XCircle,
   AlertCircle,
   Trash2,
   Calendar,
+  FileCheck,
 } from "lucide-react";
 import { getAppointmentPermissions } from "../utils/appointmentPermissions";
 import type { Appointment, User } from "../types";
@@ -110,7 +110,7 @@ export const AppointmentActionsMenu = ({
   const primaryActions = [];
 
   // Ver siempre es acción principal si tiene permisos
-  if (permissions.canView) {
+  /*if (permissions.canView) {
     primaryActions.push(
       <Link
         key="view"
@@ -121,7 +121,7 @@ export const AppointmentActionsMenu = ({
         <Eye size={14} />
       </Link>,
     );
-  }
+  }*/
 
   // Editar si está disponible
   if (permissions.canEdit) {
@@ -139,6 +139,8 @@ export const AppointmentActionsMenu = ({
 
   // Acciones secundarias para el menú
   const hasSecondaryActions =
+    (!showPrimaryActions && permissions.canView) ||
+    (!showPrimaryActions && permissions.canEdit) ||
     permissions.canMarkNoShow ||
     permissions.canCancel ||
     permissions.canReschedule ||
@@ -199,6 +201,30 @@ export const AppointmentActionsMenu = ({
                     Acciones para {appointment.client.fullName}
                   </div>
 
+                  {/* Ver detalles (Si está oculto en primaryActions) */}
+                  {/*!showPrimaryActions && permissions.canView && (
+                    <Link
+                      to={`/appointments/${appointment.id}`}
+                      className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Eye size={14} className="mr-2 text-blue-500" />
+                      Ver detalles
+                    </Link>
+                  )*/}
+
+                  {/* Editar cita (Si está oculto en primaryActions) */}
+                  {!showPrimaryActions && permissions.canEdit && (
+                    <Link
+                      to={`/appointments/${appointment.id}/edit`}
+                      className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-800 transition-colors"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Edit size={14} className="mr-2 text-yellow-500" />
+                      Editar cita
+                    </Link>
+                  )}
+
                   {/* Reprogramar */}
                   {permissions.canReschedule && (
                     <button
@@ -222,9 +248,9 @@ export const AppointmentActionsMenu = ({
                         onClick={() =>
                           handleAction(() => onSurvey(appointment))
                         }
-                        className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                        className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-800 transition-colors"
                       >
-                        <Eye size={14} className="mr-2 text-blue-500" />
+                        <FileCheck size={14} className="mr-2 text-purple-500" />
                         Encuesta de satisfacción
                       </button>
                     )}

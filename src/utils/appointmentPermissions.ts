@@ -3,6 +3,7 @@ import type { Appointment, User } from "../types";
 export interface AppointmentPermissions {
   canView: boolean;
   canEdit: boolean;
+  canEditReason: boolean;
   canDelete: boolean;
   canComplete: boolean;
   canCancel: boolean;
@@ -15,12 +16,13 @@ export const getAppointmentPermissions = (
   user: User | null,
   isAdmin: boolean,
   isCoordinator: boolean,
-  isPsychologist: boolean
+  isPsychologist: boolean,
 ): AppointmentPermissions => {
   if (!user) {
     return {
       canView: false,
       canEdit: false,
+      canEditReason: false,
       canDelete: false,
       canComplete: false,
       canCancel: false,
@@ -34,6 +36,7 @@ export const getAppointmentPermissions = (
     return {
       canView: true,
       canEdit: appointment.status === "scheduled",
+      canEditReason: true, // Edit reason is allowed
       canDelete: true,
       canComplete: appointment.status === "scheduled",
       canCancel: appointment.status === "scheduled",
@@ -48,6 +51,7 @@ export const getAppointmentPermissions = (
     return {
       canView: true,
       canEdit: appointment.status === "scheduled",
+      canEditReason: true, // Edit reason is allowed
       canDelete: false, // Coordinadores no pueden eliminar
       canComplete: appointment.status === "scheduled",
       canCancel: appointment.status === "scheduled",
@@ -62,6 +66,7 @@ export const getAppointmentPermissions = (
     return {
       canView: true,
       canEdit: false, // Psicólogos no pueden editar
+      canEditReason: false, // Edit reason is not allowed
       canDelete: false, // Psicólogos no pueden eliminar
       canComplete: appointment.status === "scheduled",
       canCancel: false, // Psicólogos no pueden cancelar
@@ -74,6 +79,7 @@ export const getAppointmentPermissions = (
   return {
     canView: false,
     canEdit: false,
+    canEditReason: false, // Edit reason is not allowed
     canDelete: false,
     canComplete: false,
     canCancel: false,
@@ -86,7 +92,7 @@ export const canUserViewAppointment = (
   user: User | null,
   isAdmin: boolean,
   isCoordinator: boolean,
-  isPsychologist: boolean
+  isPsychologist: boolean,
 ): boolean => {
   if (!user) return false;
 

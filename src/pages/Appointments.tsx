@@ -37,6 +37,7 @@ import {
   getAppointmentPermissions,
   canUserViewAppointment,
 } from "../utils/appointmentPermissions";
+import React from "react";
 
 const Appointments = () => {
   const navigate = useNavigate();
@@ -286,7 +287,7 @@ const Appointments = () => {
       "Problemas de conexión u otros inconvenientes técnicos.",
       "Falta de interés.",
     ];
-    
+
     if (predefinedOptions.includes(existingReason)) {
       setCancellationReasonOption(existingReason);
       setCancellationReasonOther("");
@@ -301,11 +302,12 @@ const Appointments = () => {
 
   const handleSaveReason = async () => {
     if (!appointmentForReason) return;
-    
-    const finalReason = cancellationReasonOption === "Otros (especificar)." 
-      ? cancellationReasonOther.trim() 
-      : cancellationReasonOption;
-      
+
+    const finalReason =
+      cancellationReasonOption === "Otros (especificar)."
+        ? cancellationReasonOther.trim()
+        : cancellationReasonOption;
+
     try {
       await saveAppointment({
         id: appointmentForReason.id,
@@ -819,17 +821,29 @@ const Appointments = () => {
                           isPsychologist,
                         );
                         return (
-                          permissions.canComplete && (
-                            <button
-                              onClick={() => handleCompleteClick(appointment)}
-                              className="inline-flex items-center justify-center w-8 h-8 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 hover:text-green-800 transition-colors shadow-sm"
-                              title="Completar cita"
-                            >
-                              <CheckCircle size={16} />
-                            </button>
-                          )
+                          <React.Fragment>
+                            {permissions.canView && (
+                              <Link
+                                to={`/appointments/${appointment.id}`}
+                                className="inline-flex items-center justify-center w-8 h-8 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-colors shadow-sm"
+                                title="Ver detalles"
+                              >
+                                <Eye size={16} />
+                              </Link>
+                            )}
+                            {permissions.canComplete && (
+                              <button
+                                onClick={() => handleCompleteClick(appointment)}
+                                className="inline-flex items-center justify-center w-8 h-8 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 hover:text-green-800 transition-colors shadow-sm"
+                                title="Completar cita"
+                              >
+                                <CheckCircle size={16} />
+                              </button>
+                            )}
+                          </React.Fragment>
                         );
                       })()}
+
                       <AppointmentActionsMenu
                         appointment={appointment}
                         user={user}
@@ -1161,14 +1175,26 @@ const Appointments = () => {
                       <select
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
                         value={cancellationReasonOption}
-                        onChange={(e) => setCancellationReasonOption(e.target.value)}
+                        onChange={(e) =>
+                          setCancellationReasonOption(e.target.value)
+                        }
                       >
                         <option value="">Seleccione una razón...</option>
-                        <option value="Olvido de la cita.">Olvido de la cita.</option>
-                        <option value="Cruce de horarios.">Cruce de horarios.</option>
-                        <option value="Problemas de conexión u otros inconvenientes técnicos.">Problemas de conexión u otros inconvenientes técnicos.</option>
-                        <option value="Falta de interés.">Falta de interés.</option>
-                        <option value="Otros (especificar).">Otros (especificar).</option>
+                        <option value="Olvido de la cita.">
+                          Olvido de la cita.
+                        </option>
+                        <option value="Cruce de horarios.">
+                          Cruce de horarios.
+                        </option>
+                        <option value="Problemas de conexión u otros inconvenientes técnicos.">
+                          Problemas de conexión u otros inconvenientes técnicos.
+                        </option>
+                        <option value="Falta de interés.">
+                          Falta de interés.
+                        </option>
+                        <option value="Otros (especificar).">
+                          Otros (especificar).
+                        </option>
                       </select>
                       {cancellationReasonOption === "Otros (especificar)." && (
                         <textarea
@@ -1176,7 +1202,9 @@ const Appointments = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="Especifique el motivo..."
                           value={cancellationReasonOther}
-                          onChange={(e) => setCancellationReasonOther(e.target.value)}
+                          onChange={(e) =>
+                            setCancellationReasonOther(e.target.value)
+                          }
                         ></textarea>
                       )}
                     </div>
