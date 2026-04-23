@@ -24,8 +24,10 @@ import {
   Info,
   FileText,
   CheckCircle,
+  BookmarkCheck,
   Eye,
   Edit,
+  FileCheck,
 } from "lucide-react";
 import type { Appointment } from "../types";
 import toast from "react-hot-toast";
@@ -801,6 +803,36 @@ const Appointments = () => {
                         status={appointment.status}
                         size="sm"
                       />
+                      {appointment.status === "completed" &&
+                        (isAdmin || isCoordinator) && (
+                          <span
+                            className={`inline-flex border items-center px-2 py-1 rounded-full text-xs font-medium w-fit ${appointment.satisfactionSurvey ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}`}
+                          >
+                            {appointment.satisfactionSurvey ? (
+                              <FileCheck size={12} className="mr-1" />
+                            ) : (
+                              <AlertCircle size={12} className="mr-1" />
+                            )}
+                            {appointment.satisfactionSurvey
+                              ? "Con encuesta"
+                              : "Sin encuesta"}
+                          </span>
+                        )}
+                      {(appointment.status === "cancelled" ||
+                        appointment.status === "no-show") && (
+                        <span
+                          className={`inline-flex border items-center px-2 py-1 rounded-full text-xs font-medium w-fit ${appointment.cancellationReason ? "bg-green-100 text-green-800 border-green-200" : "bg-red-100 text-red-800 border-red-200"}`}
+                        >
+                          {appointment.cancellationReason ? (
+                            <BookmarkCheck size={12} className="mr-1" />
+                          ) : (
+                            <AlertCircle size={12} className="mr-1" />
+                          )}
+                          {appointment.cancellationReason
+                            ? "Justificada"
+                            : "No justificada"}
+                        </span>
+                      )}
                       {appointment.document && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
                           <FileText size={12} className="mr-1" />

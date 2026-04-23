@@ -136,7 +136,6 @@ export const useAppointments = (): AppointmentsHookReturn => {
           createdAt: new Date().toISOString(),
           createdBy: user?.email ?? "system",
         });
-        toast.success("Cita creada exitosamente");
         return { ...data, id: newRef.id } as Appointment;
       }
     } catch (error) {

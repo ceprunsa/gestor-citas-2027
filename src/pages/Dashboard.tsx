@@ -42,6 +42,10 @@ const Dashboard = () => {
     (app) => app.status === "no-show"
   );
 
+  const completedWithSurvey = completedAppointments.filter(app => !!app.satisfactionSurvey).length;
+  const cancelledWithReason = cancelledAppointments.filter(app => !!app.cancellationReason).length;
+  const noShowWithReason = noShowAppointments.filter(app => !!app.cancellationReason).length;
+
   // Obtener citas para hoy
   const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
     .toISOString()
@@ -201,7 +205,7 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             <div className="text-sm text-gray-500">
               {completedAppointments.length > 0 && appointments.length > 0 ? (
                 <span className="font-medium text-green-600">
@@ -214,6 +218,12 @@ const Dashboard = () => {
                 <span>Sin datos</span>
               )}
             </div>
+            {(isAdmin || isCoordinator) && completedAppointments.length > 0 && (
+              <div className="flex justify-between text-xs border-t pt-2">
+                <span className="text-gray-500">Con encuesta: <span className="font-medium text-green-600">{completedWithSurvey}</span></span>
+                <span className="text-gray-500">Sin encuesta: <span className="font-medium text-gray-600">{completedAppointments.length - completedWithSurvey}</span></span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -229,7 +239,7 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             <div className="text-sm text-gray-500">
               {cancelledAppointments.length > 0 && appointments.length > 0 ? (
                 <span className="font-medium text-red-600">
@@ -242,6 +252,12 @@ const Dashboard = () => {
                 <span>Sin datos</span>
               )}
             </div>
+            {cancelledAppointments.length > 0 && (
+              <div className="flex justify-between text-xs border-t pt-2">
+                <span className="text-gray-500">Justificadas: <span className="font-medium text-green-600">{cancelledWithReason}</span></span>
+                <span className="text-gray-500">No justificadas: <span className="font-medium text-red-600">{cancelledAppointments.length - cancelledWithReason}</span></span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -257,7 +273,7 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             <div className="text-sm text-gray-500">
               {noShowAppointments.length > 0 && appointments.length > 0 ? (
                 <span className="font-medium text-yellow-600">
@@ -270,6 +286,12 @@ const Dashboard = () => {
                 <span>Sin datos</span>
               )}
             </div>
+            {noShowAppointments.length > 0 && (
+              <div className="flex justify-between text-xs border-t pt-2">
+                <span className="text-gray-500">Justificadas: <span className="font-medium text-green-600">{noShowWithReason}</span></span>
+                <span className="text-gray-500">No justificadas: <span className="font-medium text-red-600">{noShowAppointments.length - noShowWithReason}</span></span>
+              </div>
+            )}
           </div>
         </div>
       </div>

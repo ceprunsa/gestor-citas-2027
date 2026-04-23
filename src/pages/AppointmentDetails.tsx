@@ -679,6 +679,34 @@ const AppointmentDetails = () => {
             </div>
           )}
 
+          {/* Resultados de Encuesta de Satisfacción */}
+          {(isAdmin || isCoordinator) && appointment.satisfactionSurvey && (
+            <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-100 mb-6">
+              <div className="px-6 py-4 bg-gray-50 border-b">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <CheckCircle className="h-5 w-5 text-primary mr-2" />
+                  Encuesta de Satisfacción
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">La cita empezó a la hora programada</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${appointment.satisfactionSurvey.startedOnTime ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {appointment.satisfactionSurvey.startedOnTime ? 'Sí' : 'No'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">El trato fue respetuoso</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${appointment.satisfactionSurvey.respectfulTreatment ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {appointment.satisfactionSurvey.respectfulTreatment ? 'Sí' : 'No'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Información para citas no completadas */}
           {appointment.status !== "completed" && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
