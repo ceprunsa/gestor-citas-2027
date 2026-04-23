@@ -109,20 +109,6 @@ export const AppointmentActionsMenu = ({
   // Acciones principales que se muestran como botones
   const primaryActions = [];
 
-  // Ver siempre es acción principal si tiene permisos
-  /*if (permissions.canView) {
-    primaryActions.push(
-      <Link
-        key="view"
-        to={`/appointments/${appointment.id}`}
-        className="inline-flex items-center justify-center w-8 h-8 text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
-        title="Ver detalles"
-      >
-        <Eye size={14} />
-      </Link>,
-    );
-  }*/
-
   // Editar si está disponible
   if (permissions.canEdit) {
     primaryActions.push(
@@ -150,6 +136,20 @@ export const AppointmentActionsMenu = ({
       onSurvey) ||
     ((appointment.status === "cancelled" || appointment.status === "no-show") &&
       onReason);
+
+  const hasAvailableOptions = Boolean(
+    (!showPrimaryActions && permissions.canEdit) ||
+    permissions.canReschedule ||
+    (appointment.status === "completed" &&
+      (isAdmin || isCoordinator) &&
+      onSurvey) ||
+    ((appointment.status === "cancelled" || appointment.status === "no-show") &&
+      onReason &&
+      (isCoordinator || isAdmin)) ||
+    permissions.canMarkNoShow ||
+    permissions.canCancel ||
+    permissions.canDelete,
+  );
 
   return (
     <div className="flex items-center gap-1">
@@ -201,122 +201,127 @@ export const AppointmentActionsMenu = ({
                     Acciones para {appointment.client.fullName}
                   </div>
 
-                  {/* Ver detalles (Si está oculto en primaryActions) */}
-                  {/*!showPrimaryActions && permissions.canView && (
-                    <Link
-                      to={`/appointments/${appointment.id}`}
-                      className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <Eye size={14} className="mr-2 text-blue-500" />
-                      Ver detalles
-                    </Link>
-                  )*/}
+                  {!hasAvailableOptions ? (
+                    <div className="px-3 py-3 text-sm text-gray-500 text-center italic">
+                      No hay opciones disponibles
+                    </div>
+                  ) : (
+                    <>
+                      {/* Editar cita (Si está oculto en primaryActions) */}
+                      {!showPrimaryActions && permissions.canEdit && (
+                        <Link
+                          to={`/appointments/${appointment.id}/edit`}
+                          className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-800 transition-colors"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <Edit size={14} className="mr-2 text-yellow-500" />
+                          Editar cita
+                        </Link>
+                      )}
 
-                  {/* Editar cita (Si está oculto en primaryActions) */}
-                  {!showPrimaryActions && permissions.canEdit && (
-                    <Link
-                      to={`/appointments/${appointment.id}/edit`}
-                      className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-800 transition-colors"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <Edit size={14} className="mr-2 text-yellow-500" />
-                      Editar cita
-                    </Link>
-                  )}
+                      {/* Reprogramar */}
+                      {permissions.canReschedule && (
+                        <button
+                          onClick={() =>
+                            handleAction(() =>
+                              onChangeStatus(appointment, "scheduled"),
+                            )
+                          }
+                          className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-800 transition-colors"
+                        >
+                          <Calendar size={14} className="mr-2 text-green-500" />
+                          Reprogramar
+                        </button>
+                      )}
 
-                  {/* Reprogramar */}
-                  {permissions.canReschedule && (
-                    <button
-                      onClick={() =>
-                        handleAction(() =>
-                          onChangeStatus(appointment, "scheduled"),
-                        )
-                      }
-                      className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-800 transition-colors"
-                    >
-                      <Calendar size={14} className="mr-2 text-green-500" />
-                      Reprogramar
-                    </button>
-                  )}
+                      {/* Encuesta de Satisfacción */}
+                      {appointment.status === "completed" &&
+                        (isAdmin || isCoordinator) &&
+                        onSurvey && (
+                          <button
+                            onClick={() =>
+                              handleAction(() => onSurvey(appointment))
+                            }
+                            className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-800 transition-colors"
+                          >
+                            <FileCheck
+                              size={14}
+                              className="mr-2 text-purple-500"
+                            />
+                            Encuesta de satisfacción
+                          </button>
+                        )}
 
-                  {/* Encuesta de Satisfacción */}
-                  {appointment.status === "completed" &&
-                    (isAdmin || isCoordinator) &&
-                    onSurvey && (
-                      <button
-                        onClick={() =>
-                          handleAction(() => onSurvey(appointment))
-                        }
-                        className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-800 transition-colors"
-                      >
-                        <FileCheck size={14} className="mr-2 text-purple-500" />
-                        Encuesta de satisfacción
-                      </button>
-                    )}
+                      {/* Ver/Editar Motivo de Cancelación */}
+                      {(appointment.status === "cancelled" ||
+                        appointment.status === "no-show") &&
+                        onReason &&
+                        (isCoordinator || isAdmin) && (
+                          <button
+                            onClick={() =>
+                              handleAction(() => onReason(appointment))
+                            }
+                            className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                          >
+                            <Edit size={14} className="mr-2 text-blue-500" />
+                            Motivo / Razón
+                          </button>
+                        )}
 
-                  {/* Ver/Editar Motivo de Cancelación */}
-                  {(appointment.status === "cancelled" ||
-                    appointment.status === "no-show") &&
-                    onReason && (
-                      <button
-                        onClick={() =>
-                          handleAction(() => onReason(appointment))
-                        }
-                        className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-                      >
-                        <Edit size={14} className="mr-2 text-blue-500" />
-                        Motivo / Razón
-                      </button>
-                    )}
+                      {/* No asistió */}
+                      {permissions.canMarkNoShow && (
+                        <button
+                          onClick={() =>
+                            handleAction(() =>
+                              onChangeStatus(appointment, "no-show"),
+                            )
+                          }
+                          className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-800 transition-colors"
+                        >
+                          <AlertCircle
+                            size={14}
+                            className="mr-2 text-yellow-500"
+                          />
+                          No asistió
+                        </button>
+                      )}
 
-                  {/* No asistió */}
-                  {permissions.canMarkNoShow && (
-                    <button
-                      onClick={() =>
-                        handleAction(() =>
-                          onChangeStatus(appointment, "no-show"),
-                        )
-                      }
-                      className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-800 transition-colors"
-                    >
-                      <AlertCircle size={14} className="mr-2 text-yellow-500" />
-                      No asistió
-                    </button>
-                  )}
+                      {/* Cancelar */}
+                      {permissions.canCancel && (
+                        <button
+                          onClick={() =>
+                            handleAction(() =>
+                              onChangeStatus(appointment, "cancelled"),
+                            )
+                          }
+                          className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-800 transition-colors"
+                        >
+                          <XCircle size={14} className="mr-2 text-red-500" />
+                          Cancelar
+                        </button>
+                      )}
 
-                  {/* Cancelar */}
-                  {permissions.canCancel && (
-                    <button
-                      onClick={() =>
-                        handleAction(() =>
-                          onChangeStatus(appointment, "cancelled"),
-                        )
-                      }
-                      className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-800 transition-colors"
-                    >
-                      <XCircle size={14} className="mr-2 text-red-500" />
-                      Cancelar
-                    </button>
-                  )}
+                      {/* Separador si hay acciones peligrosas */}
+                      {permissions.canDelete &&
+                        (permissions.canMarkNoShow ||
+                          permissions.canCancel ||
+                          permissions.canReschedule) && (
+                          <div className="border-t border-gray-100 my-1"></div>
+                        )}
 
-                  {/* Separador si hay acciones peligrosas */}
-                  {permissions.canDelete &&
-                    (permissions.canMarkNoShow ||
-                      permissions.canCancel ||
-                      permissions.canReschedule) && (
-                      <div className="border-t border-gray-100 my-1"></div>
-                    )}
-
-                  {/* Eliminar */}
-                  {permissions.canDelete && (
-                    <button
-                      onClick={() => handleAction(() => onDelete(appointment))}
-                      className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-800 transition-colors"
-                    >
-                      <Trash2 size={14} className="mr-2 text-red-500" />
-                      Eliminar
-                    </button>
+                      {/* Eliminar */}
+                      {permissions.canDelete && (
+                        <button
+                          onClick={() =>
+                            handleAction(() => onDelete(appointment))
+                          }
+                          className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-800 transition-colors"
+                        >
+                          <Trash2 size={14} className="mr-2 text-red-500" />
+                          Eliminar
+                        </button>
+                      )}
+                    </>
                   )}
 
                   {/* Botón cerrar en móvil */}
