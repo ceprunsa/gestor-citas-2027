@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setUser(null);
         }
         setLoading(false);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -120,7 +120,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (querySnapshot.empty) {
         // Si el usuario no existe, cerrar sesión
         await signOut(auth);
-        throw new Error("Usuario no autorizado. Contacte al administrador.");
+        throw new Error(
+          "Usuario no autorizado. Contacte al administrador para registrar su cuenta.",
+        );
       }
 
       return result.user;
@@ -139,7 +141,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       if (!userData.email) {
         throw new Error(
-          "El correo electrónico es requerido para crear un usuario"
+          "El correo electrónico es requerido para crear un usuario",
         );
       }
 
@@ -163,7 +165,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
 
       console.log(
-        `Usuario creado con éxito: ${userData.email}, ID: ${newUserRef.id}`
+        `Usuario creado con éxito: ${userData.email}, ID: ${newUserRef.id}`,
       );
       return true;
     } catch (error) {

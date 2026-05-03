@@ -28,6 +28,7 @@ import {
   Eye,
   Edit,
   FileCheck,
+  Share2,
 } from "lucide-react";
 import type { Appointment } from "../types";
 import toast from "react-hot-toast";
@@ -667,7 +668,7 @@ const Appointments = () => {
                         | boolean
                         | ReactElement<
                             unknown,
-                            string | JSXElementConstructor<any>
+                            string | JSXElementConstructor<unknown>
                           >
                         | Iterable<ReactNode>
                         | Promise<
@@ -678,7 +679,7 @@ const Appointments = () => {
                             | ReactPortal
                             | ReactElement<
                                 unknown,
-                                string | JSXElementConstructor<any>
+                                string | JSXElementConstructor<unknown>
                               >
                             | Iterable<ReactNode>
                             | null
@@ -839,6 +840,13 @@ const Appointments = () => {
                           PDF
                         </span>
                       )}
+                      {appointment.status === "completed" &&
+                        appointment.hasPsychologicalReferral && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800 border border-teal-200 w-fit">
+                            <Share2 size={12} className="mr-1" />
+                            Derivación
+                          </span>
+                        )}
                     </div>
                   </div>
 
@@ -915,7 +923,7 @@ const Appointments = () => {
                         | boolean
                         | ReactElement<
                             unknown,
-                            string | JSXElementConstructor<any>
+                            string | JSXElementConstructor<unknown>
                           >
                         | Iterable<ReactNode>
                         | Promise<
@@ -926,7 +934,7 @@ const Appointments = () => {
                             | ReactPortal
                             | ReactElement<
                                 unknown,
-                                string | JSXElementConstructor<any>
+                                string | JSXElementConstructor<unknown>
                               >
                             | Iterable<ReactNode>
                             | null

@@ -21,11 +21,12 @@ import {
   Info,
   Upload,
   CheckCircle,
+  Share2,
 } from "lucide-react";
 import type { Appointment } from "../types";
 import toast from "react-hot-toast";
 import DocumentUpload from "../components/DocumentUpload";
-import { exportAppointmentToWord } from "../utils/docxExport";
+import { exportAppointmentToWord, exportDerivationToWord } from "../utils/docxExport";
 
 const AppointmentDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,7 +35,9 @@ const AppointmentDetails = () => {
     deleteAppointment,
     updateAppointmentStatus,
     uploadDocument,
+    uploadReferralDocument,
     isUploadingDocument,
+    isUploadingReferral,
   } = useAppointments();
   const { isAdmin, isCoordinator } = useAuth();
 
@@ -47,9 +50,11 @@ const AppointmentDetails = () => {
     status: Appointment["status"] | null;
   }>({ show: false, status: null });
   const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
 
   // Estado para indicar si se está exportando a Word
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingReferral, setIsExportingReferral] = useState(false);
 
   // Manejar eliminación de cita
   const handleDelete = async () => {
@@ -117,6 +122,36 @@ const AppointmentDetails = () => {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Manejar exportación de hoja de derivación
+  const handleExportDerivation = async () => {
+    if (!appointment) return;
+
+    if (appointment.status !== "completed") {
+      toast.error("Solo se puede generar la derivación para citas completadas");
+      return;
+    }
+
+    setIsExportingReferral(true);
+    try {
+      await exportDerivationToWord(appointment);
+      toast.success("Hoja de derivación descargada exitosamente");
+    } catch (error) {
+      console.error("Error al exportar derivación:", error);
+      toast.error("Error al generar la hoja de derivación");
+    } finally {
+      setIsExportingReferral(false);
+    }
+  };
+
+  // Manejar subida del PDF de derivación
+  const handleReferralUpload = (appointmentId: string, file: File) => {
+    if (appointment?.status !== "completed") {
+      toast.error("Solo se pueden subir derivaciones a citas completadas");
+      return;
+    }
+    uploadReferralDocument({ appointmentId, file });
   };
 
   // Funciones auxiliares
@@ -227,6 +262,37 @@ const AppointmentDetails = () => {
                   {appointment.document
                     ? "Gestionar Documento"
                     : "Subir Documento"}
+                </span>
+              </button>
+            )}
+
+            {/* Botón para descargar hoja de derivación (solo para citas completadas) */}
+            {appointment.status === "completed" && (
+              <button
+                onClick={handleExportDerivation}
+                disabled={isExportingReferral}
+                className="btn btn-secondary inline-flex items-center"
+              >
+                <Share2 size={18} className="mr-2" />
+                <span>{isExportingReferral ? "Generando..." : "Hoja de Derivación"}</span>
+              </button>
+            )}
+
+            {/* Botón para subir PDF de derivación (solo para citas completadas) */}
+            {appointment.status === "completed" && (
+              <button
+                onClick={() => setShowReferralModal(true)}
+                className={`btn inline-flex items-center ${
+                  appointment.hasPsychologicalReferral
+                    ? "btn-secondary"
+                    : "btn-primary"
+                }`}
+              >
+                <Upload size={18} className="mr-2" />
+                <span>
+                  {appointment.hasPsychologicalReferral
+                    ? "Ver/Actualizar Derivación"
+                    : "Subir PDF Derivación"}
                 </span>
               </button>
             )}
@@ -679,6 +745,67 @@ const AppointmentDetails = () => {
             </div>
           )}
 
+          {/* Derivación psicológica — Badge y documento (solo citas completadas) */}
+          {appointment.status === "completed" && (
+            <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-100 mb-6">
+              <div className="px-6 py-4 bg-gray-50 border-b">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <Share2 className="h-5 w-5 text-primary mr-2" />
+                  Derivación Psicológica
+                </h2>
+              </div>
+              <div className="p-6">
+                {appointment.hasPsychologicalReferral ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-teal-100 text-teal-800 border border-teal-200">
+                        <CheckCircle className="h-4 w-4" />
+                        Con Derivación Psicológica
+                      </span>
+                    </div>
+                    {appointment.referralDocument && (
+                      <div className="space-y-2">
+                        <p
+                          className="text-sm font-medium text-gray-900 break-words"
+                          title={appointment.referralDocument.originalName}
+                        >
+                          {appointment.referralDocument.originalName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Subido el{" "}
+                          {new Date(
+                            appointment.referralDocument.uploadedAt
+                          ).toLocaleString()}
+                        </p>
+                        <div className="flex justify-end">
+                          <a
+                            href={appointment.referralDocument.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-teal-600 bg-teal-50 hover:bg-teal-100 hover:text-teal-800 rounded-md transition-colors duration-200"
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Ver derivación PDF
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Share2 className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                    <p className="text-sm text-gray-500">
+                      Sin derivación psicológica registrada
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Descarga la hoja de derivación, fírmala y súbela como PDF
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Resultados de Encuesta de Satisfacción */}
           {(isAdmin || isCoordinator) && appointment.satisfactionSurvey && (
             <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-100 mb-6">
@@ -795,6 +922,76 @@ const AppointmentDetails = () => {
                   type="button"
                   className="btn btn-secondary mt-3 sm:mt-0 sm:ml-3"
                   onClick={() => setShowDocumentModal(false)}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de derivación psicológica — Subida de PDF */}
+      {showReferralModal && appointment?.status === "completed" && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-teal-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <Share2 className="h-6 w-6 text-teal-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                    <h3
+                      className="text-lg leading-6 font-medium text-gray-900"
+                      id="referral-modal-title"
+                    >
+                      Subir PDF de Derivación Psicológica
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Sube el PDF firmado de la hoja de derivación. Al subirlo, la
+                        cita quedará marcada como{" "}
+                        <strong className="text-teal-700">Con Derivación Psicológica</strong>.
+                      </p>
+                      {!appointment.hasPsychologicalReferral && (
+                        <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-md">
+                          <p className="text-xs text-teal-700">
+                            💡 ¿Aún no tienes el PDF? Descarga primero la hoja de
+                            derivación desde el botón <strong>"Hoja de Derivación"</strong>.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <DocumentUpload
+                    appointmentId={appointment.id}
+                    currentDocument={appointment.referralDocument}
+                    onUpload={handleReferralUpload}
+                    isUploading={isUploadingReferral}
+                    disabled={appointment.status !== "completed"}
+                  />
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="btn btn-secondary mt-3 sm:mt-0 sm:ml-3"
+                  onClick={() => setShowReferralModal(false)}
                 >
                   Cerrar
                 </button>

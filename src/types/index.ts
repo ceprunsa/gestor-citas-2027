@@ -20,7 +20,7 @@ export interface AuthContextType {
   isAdmin: boolean;
   isCoordinator: boolean;
   isPsychologist: boolean;
-  loginWithGoogle: () => Promise<any>;
+  loginWithGoogle: () => Promise<unknown>;
   logout: () => Promise<void>;
   createUser: (userData: Partial<User>) => Promise<boolean>;
 }
@@ -154,6 +154,15 @@ export interface Appointment {
    */
   document?: AppointmentDocument;
   /**
+   * Indica si la cita tiene una derivación psicológica asociada.
+   * Se activa al subir el PDF firmado de derivación.
+   */
+  hasPsychologicalReferral?: boolean;
+  /**
+   * Documento PDF de derivación psicológica firmado
+   */
+  referralDocument?: AppointmentDocument;
+  /**
    * Fecha y hora de creación en formato ISO 8601 completo
    */
   createdAt: string;
@@ -198,7 +207,9 @@ export interface PsychologistsHookReturn {
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
-  usePsychologistByIdQuery: (id?: string) => UseQueryResult<Psychologist | null>;
+  usePsychologistByIdQuery: (
+    id?: string,
+  ) => UseQueryResult<Psychologist | null>;
   savePsychologist: (data: Partial<Psychologist>) => void;
   deletePsychologist: (id: string) => void;
   isSaving: boolean;
@@ -227,7 +238,7 @@ export interface ConsultationReasonsHookReturn {
   isError: boolean;
   error: Error | null;
   useConsultationReasonByIdQuery: (
-    id?: string
+    id?: string,
   ) => UseQueryResult<ConsultationReason | null>;
   saveReason: (data: Partial<ConsultationReason>) => void;
   deleteReason: (id: string) => void;
@@ -249,13 +260,15 @@ export interface AppointmentsHookReturn {
   updateAppointmentStatus: (
     id: string,
     status: Appointment["status"],
-    data?: Partial<Appointment>
+    data?: Partial<Appointment>,
   ) => void;
   uploadDocument: (data: { appointmentId: string; file: File }) => void;
+  uploadReferralDocument: (data: { appointmentId: string; file: File }) => void;
   isSaving: boolean;
   isDeleting: boolean;
   isUpdatingStatus: boolean;
   isUploadingDocument: boolean;
+  isUploadingReferral: boolean;
   // Filtros
   filterByPsychologist: (psychologistId: string) => Appointment[];
   filterByDateRange: (startDate: string, endDate: string) => Appointment[];

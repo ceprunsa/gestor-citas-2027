@@ -207,3 +207,65 @@ export const exportAppointmentToWord = async (
     return Promise.reject(error);
   }
 };
+
+// Función para exportar la hoja de derivación psicológica a Word
+export const exportDerivationToWord = async (
+  appointment: Appointment,
+  templateUrl = "/templates/appointment_derivation_template.docx"
+): Promise<void> => {
+  try {
+    // Cargar la plantilla
+    const response = await fetch(templateUrl);
+    if (!response.ok) {
+      throw new Error(`No se pudo cargar la plantilla de derivación: ${response.statusText}`);
+    }
+    const templateContent = await response.arrayBuffer();
+
+    // Preparar los datos para la plantilla de derivación
+    const data = {
+      clientName: appointment.client.fullName,
+      birthDate: appointment.birthDate
+        ? formatDate(appointment.birthDate)
+        : "No registrada",
+      gender: appointment.gender
+        ? getGenderInSpanish(appointment.gender)
+        : "No registrado",
+      phoneClient: appointment.client.phone,
+      emailClient: appointment.client.email,
+      psychologistName: appointment.psychologistName,
+    };
+
+    // Crear un nuevo objeto PizZip con el contenido de la plantilla
+    const zip = new PizZip(templateContent);
+
+    // Crear un nuevo objeto Docxtemplater
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    });
+
+    // Renderizar el documento con los datos
+    doc.render(data);
+
+    // Generar el documento final
+    const out = doc.getZip().generate({
+      type: "blob",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+
+    // Nombre del archivo
+    const fileName = `Derivacion_${appointment.client.fullName.replace(
+      /\s+/g,
+      "_"
+    )}_${appointment.date}.docx`;
+
+    // Guardar el archivo
+    saveAs(out, fileName);
+
+    return Promise.resolve();
+  } catch (error) {
+    console.error("Error al exportar la hoja de derivación:", error);
+    return Promise.reject(error);
+  }
+};

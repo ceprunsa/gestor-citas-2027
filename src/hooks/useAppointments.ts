@@ -300,6 +300,58 @@ export const useAppointments = (): AppointmentsHookReturn => {
     }
   };
 
+  // Subir PDF de derivación psicológica a una cita (marca hasPsychologicalReferral: true)
+  const uploadReferralDocumentToAppointment = async (
+    appointmentId: string,
+    file: File,
+  ): Promise<void> => {
+    if (!user?.email) throw new Error("Usuario no autenticado");
+
+    const currentAppointment = await fetchAppointmentById(appointmentId);
+    if (currentAppointment) {
+      const permissions = getAppointmentPermissions(
+        currentAppointment,
+        user,
+        isAdmin,
+        isCoordinator,
+        isPsychologist,
+      );
+      if (!permissions.canView) {
+        throw new Error(
+          "No tienes permisos para gestionar documentos de esta cita",
+        );
+      }
+      if (currentAppointment.status !== "completed") {
+        throw new Error(
+          "Solo se pueden subir derivaciones a citas completadas",
+        );
+      }
+    }
+
+    try {
+      const referralDocumentInfo = await uploadPDFDocument(
+        file,
+        `${appointmentId}_referral`,
+        user.email,
+      );
+
+      await updateDoc(doc(db, "appointments", appointmentId), {
+        referralDocument: referralDocumentInfo,
+        hasPsychologicalReferral: true,
+        updatedAt: new Date().toISOString(),
+        updatedBy: user.email,
+      });
+
+      toast.success("Derivación psicológica registrada exitosamente");
+    } catch (error) {
+      console.error("Error al subir derivación:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Error al subir derivación",
+      );
+      throw error;
+    }
+  };
+
   // ─── React Query ────────────────────────────────────────────────────────────
   const appointmentsQuery = useQuery({
     queryKey: APPOINTMENT_QUERY_KEYS.all,
@@ -344,6 +396,18 @@ export const useAppointments = (): AppointmentsHookReturn => {
       queryClient.invalidateQueries({ queryKey: APPOINTMENT_QUERY_KEYS.all }),
   });
 
+  const uploadReferralDocumentMutation = useMutation({
+    mutationFn: ({
+      appointmentId,
+      file,
+    }: {
+      appointmentId: string;
+      file: File;
+    }) => uploadReferralDocumentToAppointment(appointmentId, file),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_QUERY_KEYS.all }),
+  });
+
   // ─── Filtros (calculados desde caché) ─────────────────────────────────────
   const appointments = appointmentsQuery.data ?? [];
 
@@ -373,10 +437,12 @@ export const useAppointments = (): AppointmentsHookReturn => {
       completionData?: Partial<Appointment>,
     ) => updateAppointmentStatusMutation.mutate({ id, status, completionData }),
     uploadDocument: uploadDocumentMutation.mutate,
+    uploadReferralDocument: uploadReferralDocumentMutation.mutate,
     isSaving: saveAppointmentMutation.isPending,
     isDeleting: deleteAppointmentMutation.isPending,
     isUpdatingStatus: updateAppointmentStatusMutation.isPending,
     isUploadingDocument: uploadDocumentMutation.isPending,
+    isUploadingReferral: uploadReferralDocumentMutation.isPending,
     filterByPsychologist,
     filterByDateRange,
     filterByStatus,

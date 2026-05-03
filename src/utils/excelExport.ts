@@ -96,6 +96,7 @@ export const exportAppointmentsToExcel = async (
       { header: "Fecha de Actualización", key: "updatedAt", width: 18 },
       { header: "Actualizado por", key: "updatedBy", width: 20 },
       { header: "Tiene Documento", key: "hasDocument", width: 15 },
+      { header: "Con Derivación Psicológica", key: "hasPsychologicalReferral", width: 22 },
     ];
 
     // Estilo para el header
@@ -170,6 +171,7 @@ export const exportAppointmentsToExcel = async (
         updatedAt: appointment.updatedAt ? new Date(appointment.updatedAt) : "",
         updatedBy: appointment.updatedBy || "",
         hasDocument: appointment.document ? "Sí" : "No",
+        hasPsychologicalReferral: appointment.hasPsychologicalReferral ? "Sí" : "No",
       });
 
       // Aplicar formato condicional según el estado
@@ -209,6 +211,24 @@ export const exportAppointmentsToExcel = async (
           break;
       }
 
+      // Formato condicional para derivación psicológica
+      const referralCell = row.getCell("hasPsychologicalReferral");
+      if (appointment.hasPsychologicalReferral) {
+        referralCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFCCFBF1" }, // teal-100
+        };
+        referralCell.font = { color: { argb: "FF0D9488" } }; // teal-600
+      } else {
+        referralCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFF3F4F6" }, // gray-100
+        };
+        referralCell.font = { color: { argb: "FF6B7280" } }; // gray-500
+      }
+
       // Formato para fechas
       const dateCell = row.getCell("date");
       if (dateCell.value instanceof Date) {
@@ -246,6 +266,7 @@ export const exportAppointmentsToExcel = async (
       row.getCell("maritalStatus").alignment = { horizontal: "center" };
       row.getCell("previousApplications").alignment = { horizontal: "center" };
       row.getCell("hasDocument").alignment = { horizontal: "center" };
+      row.getCell("hasPsychologicalReferral").alignment = { horizontal: "center" };
       row.getCell("startedOnTime").alignment = { horizontal: "left" };
       row.getCell("respectfulTreatment").alignment = { horizontal: "left" };
     });
@@ -266,7 +287,7 @@ export const exportAppointmentsToExcel = async (
     // Agregar filtros automáticos
     worksheet.autoFilter = {
       from: "A1",
-      to: `AE${filteredAppointments.length + 1}`,
+      to: `AF${filteredAppointments.length + 1}`,
     };
 
     // Congelar la primera fila
