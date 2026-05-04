@@ -36,8 +36,12 @@ const AppointmentDetails = () => {
     updateAppointmentStatus,
     uploadDocument,
     uploadReferralDocument,
+    deleteDocument,
+    deleteReferralDocument,
     isUploadingDocument,
     isUploadingReferral,
+    isDeletingDocument,
+    isDeletingReferral,
   } = useAppointments();
   const { isAdmin, isCoordinator } = useAuth();
 
@@ -55,6 +59,10 @@ const AppointmentDetails = () => {
   // Estado para indicar si se está exportando a Word
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingReferral, setIsExportingReferral] = useState(false);
+
+  // Estado para confirmar eliminación de documentos
+  const [showDeleteDocumentConfirm, setShowDeleteDocumentConfirm] = useState(false);
+  const [showDeleteReferralConfirm, setShowDeleteReferralConfirm] = useState(false);
 
   // Manejar eliminación de cita
   const handleDelete = async () => {
@@ -154,6 +162,20 @@ const AppointmentDetails = () => {
     uploadReferralDocument({ appointmentId, file });
   };
 
+  // Manejar eliminación del documento de la cita
+  const handleDeleteDocument = () => {
+    if (!id) return;
+    deleteDocument(id);
+    setShowDeleteDocumentConfirm(false);
+  };
+
+  // Manejar eliminación del documento de derivación
+  const handleDeleteReferralDocument = () => {
+    if (!id) return;
+    deleteReferralDocument(id);
+    setShowDeleteReferralConfirm(false);
+  };
+
   // Funciones auxiliares
   const getStatusBadgeClasses = (status: string) => {
     switch (status) {
@@ -250,65 +272,73 @@ const AppointmentDetails = () => {
               Información completa de la cita psicológica
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {/* Botón para subir documento (solo para citas completadas) */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* ── Grupo: Documento de Cita ─────────────────────── */}
             {appointment.status === "completed" && (
-              <button
-                onClick={() => setShowDocumentModal(true)}
-                className="btn btn-secondary inline-flex items-center"
-              >
-                <Upload size={18} className="mr-2" />
-                <span>
-                  {appointment.document
-                    ? "Gestionar Documento"
-                    : "Subir Documento"}
-                </span>
-              </button>
+              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">Cita</span>
+                {/* Botón descargar plantilla Word */}
+                <button
+                  onClick={handleExportToWord}
+                  disabled={isExporting}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                  title="Descargar plantilla Word de la cita"
+                >
+                  <FileText size={15} />
+                  <span>{isExporting ? "Generando..." : "Descargar Word"}</span>
+                </button>
+                {/* Divider */}
+                <span className="w-px h-5 bg-gray-300 mx-1" />
+                {/* Botón subir/gestionar documento */}
+                <button
+                  onClick={() => setShowDocumentModal(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                  title={appointment.document ? "Gestionar documento subido" : "Subir documento PDF"}
+                >
+                  <Upload size={15} />
+                  <span>{appointment.document ? "Gestionar Doc." : "Subir Doc."}</span>
+                </button>
+              </div>
             )}
 
-            {/* Botón para descargar hoja de derivación (solo para citas completadas) */}
+            {/* ── Separador visual entre grupos ────────────────── */}
             {appointment.status === "completed" && (
-              <button
-                onClick={handleExportDerivation}
-                disabled={isExportingReferral}
-                className="btn btn-secondary inline-flex items-center"
-              >
-                <Share2 size={18} className="mr-2" />
-                <span>{isExportingReferral ? "Generando..." : "Hoja de Derivación"}</span>
-              </button>
+              <span className="hidden sm:block w-px h-8 bg-gray-200" />
             )}
 
-            {/* Botón para subir PDF de derivación (solo para citas completadas) */}
+            {/* ── Grupo: Derivación Psicológica ────────────────── */}
             {appointment.status === "completed" && (
-              <button
-                onClick={() => setShowReferralModal(true)}
-                className={`btn inline-flex items-center ${
-                  appointment.hasPsychologicalReferral
-                    ? "btn-secondary"
-                    : "btn-primary"
-                }`}
-              >
-                <Upload size={18} className="mr-2" />
-                <span>
-                  {appointment.hasPsychologicalReferral
-                    ? "Ver/Actualizar Derivación"
-                    : "Subir PDF Derivación"}
-                </span>
-              </button>
+              <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
+                <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mr-1">Derivación</span>
+                {/* Botón descargar plantilla derivación */}
+                <button
+                  onClick={handleExportDerivation}
+                  disabled={isExportingReferral}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 rounded-md transition-colors"
+                  title="Descargar plantilla Word de derivación"
+                >
+                  <Share2 size={15} />
+                  <span>{isExportingReferral ? "Generando..." : "Descargar Word"}</span>
+                </button>
+                {/* Divider */}
+                <span className="w-px h-5 bg-emerald-300 mx-1" />
+                {/* Botón subir PDF derivación */}
+                <button
+                  onClick={() => setShowReferralModal(true)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    appointment.hasPsychologicalReferral
+                      ? "text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100"
+                      : "text-white bg-emerald-600 hover:bg-emerald-700"
+                  }`}
+                  title={appointment.hasPsychologicalReferral ? "Ver o actualizar derivación PDF" : "Subir PDF firmado de derivación"}
+                >
+                  <Upload size={15} />
+                  <span>{appointment.hasPsychologicalReferral ? "Ver/Actualizar PDF" : "Subir PDF"}</span>
+                </button>
+              </div>
             )}
 
-            {/* Botón para exportar a Word (solo para citas completadas) */}
-            {appointment.status === "completed" && (
-              <button
-                onClick={handleExportToWord}
-                disabled={isExporting}
-                className="btn btn-secondary inline-flex items-center"
-              >
-                <FileText size={18} className="mr-2" />
-                <span>{isExporting ? "Exportando..." : "Exportar a Word"}</span>
-              </button>
-            )}
-
+            {/* ── Separador antes de acciones de gestión ─────────── */}
             {appointment?.status === "scheduled" && (
               <>
                 {(isAdmin || isCoordinator) && (
@@ -729,7 +759,7 @@ const AppointmentDetails = () => {
                       ).toLocaleString()}
                     </p>
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between gap-2 pt-1">
                     <a
                       href={appointment.document.fileUrl}
                       target="_blank"
@@ -739,6 +769,17 @@ const AppointmentDetails = () => {
                       <FileText className="h-4 w-4 mr-2" />
                       Ver documento
                     </a>
+                    {/* Eliminar documento (solo admin/coordinator) */}
+                    {(isAdmin || isCoordinator) && (
+                      <button
+                        onClick={() => setShowDeleteDocumentConfirm(true)}
+                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-800 rounded-md transition-colors duration-200"
+                        title="Eliminar documento"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1.5" />
+                        Eliminar
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -758,7 +799,7 @@ const AppointmentDetails = () => {
                 {appointment.hasPsychologicalReferral ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-teal-100 text-teal-800 border border-teal-200">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
                         <CheckCircle className="h-4 w-4" />
                         Con Derivación Psicológica
                       </span>
@@ -777,16 +818,27 @@ const AppointmentDetails = () => {
                             appointment.referralDocument.uploadedAt
                           ).toLocaleString()}
                         </p>
-                        <div className="flex justify-end">
+                        <div className="flex items-center justify-between gap-2 pt-1">
                           <a
                             href={appointment.referralDocument.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-teal-600 bg-teal-50 hover:bg-teal-100 hover:text-teal-800 rounded-md transition-colors duration-200"
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 rounded-md transition-colors duration-200"
                           >
                             <FileText className="h-4 w-4 mr-2" />
                             Ver derivación PDF
                           </a>
+                          {/* Eliminar derivación (solo admin/coordinator) */}
+                          {(isAdmin || isCoordinator) && (
+                            <button
+                              onClick={() => setShowDeleteReferralConfirm(true)}
+                              className="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-800 rounded-md transition-colors duration-200"
+                              title="Eliminar derivación"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1.5" />
+                              Eliminar
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -950,8 +1002,8 @@ const AppointmentDetails = () => {
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-teal-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <Share2 className="h-6 w-6 text-teal-600" />
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <Share2 className="h-6 w-6 text-emerald-600" />
                   </div>
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
                     <h3
@@ -964,11 +1016,11 @@ const AppointmentDetails = () => {
                       <p className="text-sm text-gray-500">
                         Sube el PDF firmado de la hoja de derivación. Al subirlo, la
                         cita quedará marcada como{" "}
-                        <strong className="text-teal-700">Con Derivación Psicológica</strong>.
+                        <strong className="text-emerald-700">Con Derivación Psicológica</strong>.
                       </p>
                       {!appointment.hasPsychologicalReferral && (
-                        <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-md">
-                          <p className="text-xs text-teal-700">
+                        <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-md">
+                          <p className="text-xs text-emerald-700">
                             💡 ¿Aún no tienes el PDF? Descarga primero la hoja de
                             derivación desde el botón <strong>"Hoja de Derivación"</strong>.
                           </p>
@@ -1051,6 +1103,124 @@ const AppointmentDetails = () => {
                   type="button"
                   className="btn btn-secondary mt-3 sm:mt-0 sm:ml-3"
                   onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de eliminación de documento */}
+      {showDeleteDocumentConfirm && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <Trash2 className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3
+                      className="text-lg leading-6 font-medium text-gray-900"
+                    >
+                      Eliminar documento
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        ¿Estás seguro de que deseas eliminar este documento asociado a la cita? Esta acción no se puede deshacer.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  disabled={isDeletingDocument}
+                  className="btn btn-danger sm:ml-3"
+                  onClick={handleDeleteDocument}
+                >
+                  {isDeletingDocument ? "Eliminando..." : "Eliminar"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingDocument}
+                  className="btn btn-secondary mt-3 sm:mt-0 sm:ml-3"
+                  onClick={() => setShowDeleteDocumentConfirm(false)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de eliminación de derivación */}
+      {showDeleteReferralConfirm && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <Trash2 className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3
+                      className="text-lg leading-6 font-medium text-gray-900"
+                    >
+                      Eliminar derivación
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        ¿Estás seguro de que deseas eliminar la hoja de derivación psicológica? Esta acción no se puede deshacer.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  disabled={isDeletingReferral}
+                  className="btn btn-danger sm:ml-3"
+                  onClick={handleDeleteReferralDocument}
+                >
+                  {isDeletingReferral ? "Eliminando..." : "Eliminar"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingReferral}
+                  className="btn btn-secondary mt-3 sm:mt-0 sm:ml-3"
+                  onClick={() => setShowDeleteReferralConfirm(false)}
                 >
                   Cancelar
                 </button>

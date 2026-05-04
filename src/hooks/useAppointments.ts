@@ -352,6 +352,51 @@ export const useAppointments = (): AppointmentsHookReturn => {
     }
   };
 
+  // Eliminar documento de la cita
+  const deleteDocumentFromAppointment = async (
+    appointmentId: string,
+  ): Promise<void> => {
+    if (!user?.email) throw new Error("Usuario no autenticado");
+
+    try {
+      await updateDoc(doc(db, "appointments", appointmentId), {
+        document: null,
+        updatedAt: new Date().toISOString(),
+        updatedBy: user.email,
+      });
+      toast.success("Documento eliminado exitosamente");
+    } catch (error) {
+      console.error("Error al eliminar documento:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Error al eliminar documento",
+      );
+      throw error;
+    }
+  };
+
+  // Eliminar documento de derivación psicológica
+  const deleteReferralDocumentFromAppointment = async (
+    appointmentId: string,
+  ): Promise<void> => {
+    if (!user?.email) throw new Error("Usuario no autenticado");
+
+    try {
+      await updateDoc(doc(db, "appointments", appointmentId), {
+        referralDocument: null,
+        hasPsychologicalReferral: false,
+        updatedAt: new Date().toISOString(),
+        updatedBy: user.email,
+      });
+      toast.success("Derivación eliminada exitosamente");
+    } catch (error) {
+      console.error("Error al eliminar derivación:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Error al eliminar derivación",
+      );
+      throw error;
+    }
+  };
+
   // ─── React Query ────────────────────────────────────────────────────────────
   const appointmentsQuery = useQuery({
     queryKey: APPOINTMENT_QUERY_KEYS.all,
@@ -408,6 +453,28 @@ export const useAppointments = (): AppointmentsHookReturn => {
       queryClient.invalidateQueries({ queryKey: APPOINTMENT_QUERY_KEYS.all }),
   });
 
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (appointmentId: string) =>
+      deleteDocumentFromAppointment(appointmentId),
+    onSuccess: (_, appointmentId) => {
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_QUERY_KEYS.all });
+      queryClient.invalidateQueries({
+        queryKey: APPOINTMENT_QUERY_KEYS.byId(appointmentId),
+      });
+    },
+  });
+
+  const deleteReferralDocumentMutation = useMutation({
+    mutationFn: (appointmentId: string) =>
+      deleteReferralDocumentFromAppointment(appointmentId),
+    onSuccess: (_, appointmentId) => {
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_QUERY_KEYS.all });
+      queryClient.invalidateQueries({
+        queryKey: APPOINTMENT_QUERY_KEYS.byId(appointmentId),
+      });
+    },
+  });
+
   // ─── Filtros (calculados desde caché) ─────────────────────────────────────
   const appointments = appointmentsQuery.data ?? [];
 
@@ -438,11 +505,15 @@ export const useAppointments = (): AppointmentsHookReturn => {
     ) => updateAppointmentStatusMutation.mutate({ id, status, completionData }),
     uploadDocument: uploadDocumentMutation.mutate,
     uploadReferralDocument: uploadReferralDocumentMutation.mutate,
+    deleteDocument: deleteDocumentMutation.mutate,
+    deleteReferralDocument: deleteReferralDocumentMutation.mutate,
     isSaving: saveAppointmentMutation.isPending,
     isDeleting: deleteAppointmentMutation.isPending,
     isUpdatingStatus: updateAppointmentStatusMutation.isPending,
     isUploadingDocument: uploadDocumentMutation.isPending,
     isUploadingReferral: uploadReferralDocumentMutation.isPending,
+    isDeletingDocument: deleteDocumentMutation.isPending,
+    isDeletingReferral: deleteReferralDocumentMutation.isPending,
     filterByPsychologist,
     filterByDateRange,
     filterByStatus,

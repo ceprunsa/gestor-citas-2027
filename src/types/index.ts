@@ -264,11 +264,15 @@ export interface AppointmentsHookReturn {
   ) => void;
   uploadDocument: (data: { appointmentId: string; file: File }) => void;
   uploadReferralDocument: (data: { appointmentId: string; file: File }) => void;
+  deleteDocument: (appointmentId: string) => void;
+  deleteReferralDocument: (appointmentId: string) => void;
   isSaving: boolean;
   isDeleting: boolean;
   isUpdatingStatus: boolean;
   isUploadingDocument: boolean;
   isUploadingReferral: boolean;
+  isDeletingDocument: boolean;
+  isDeletingReferral: boolean;
   // Filtros
   filterByPsychologist: (psychologistId: string) => Appointment[];
   filterByDateRange: (startDate: string, endDate: string) => Appointment[];

@@ -8,17 +8,17 @@ import type { AppointmentDocument } from "../types";
 export const uploadPDFDocument = async (
   file: File,
   appointmentId: string,
-  uploadedBy: string
+  uploadedBy: string,
 ): Promise<AppointmentDocument> => {
   // Validar que el archivo sea PDF
   if (file.type !== "application/pdf") {
     throw new Error("Solo se permiten archivos PDF");
   }
 
-  // Validar tamaño del archivo (máximo 10MB)
-  const maxSize = 1024 * 1024; // 10MB
+  // Validar tamaño del archivo (máximo 2MB)
+  const maxSize = 2 * 1024 * 1024; // 2MB
   if (file.size > maxSize) {
-    throw new Error("El archivo no puede ser mayor a 1MB");
+    throw new Error("El archivo no puede ser mayor a 2MB");
   }
 
   try {
@@ -27,7 +27,7 @@ export const uploadPDFDocument = async (
     const fileName = `appointment_${appointmentId}_${timestamp}.pdf`;
     const storageRef = ref(
       storage,
-      `appointments/${appointmentId}/${fileName}`
+      `appointments/${appointmentId}/${fileName}`,
     );
 
     // Subir archivo
@@ -52,7 +52,7 @@ export const uploadPDFDocument = async (
   } catch (error) {
     console.error("Error al subir archivo:", error);
     throw new Error(
-      "Error al subir el archivo. Por favor, inténtelo de nuevo."
+      "Error al subir el archivo. Por favor, inténtelo de nuevo.",
     );
   }
 };
@@ -76,7 +76,7 @@ export const formatFileSize = (bytes: number): string => {
  * Valida si un archivo es PDF válido
  */
 export const validatePDFFile = (
-  file: File
+  file: File,
 ): { isValid: boolean; error?: string } => {
   // Verificar tipo MIME
   if (file.type !== "application/pdf") {
@@ -90,9 +90,9 @@ export const validatePDFFile = (
   }
 
   // Verificar tamaño
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  const maxSize = 2 * 1024 * 1024; // 2MB
   if (file.size > maxSize) {
-    return { isValid: false, error: "El archivo no puede ser mayor a 10MB" };
+    return { isValid: false, error: "El archivo no puede ser mayor a 2MB" };
   }
 
   // Verificar que no esté vacío
