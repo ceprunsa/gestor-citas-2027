@@ -76,6 +76,7 @@ const Appointments = () => {
   const [appointmentForSurvey, setAppointmentForSurvey] =
     useState<Appointment | null>(null);
   const [surveyData, setSurveyData] = useState({
+    satisfiedWithService: null as boolean | null,
     startedOnTime: null as boolean | null,
     respectfulTreatment: null as boolean | null,
   });
@@ -252,6 +253,8 @@ const Appointments = () => {
   const handleSurveyClick = (appointment: Appointment) => {
     setAppointmentForSurvey(appointment);
     setSurveyData({
+      satisfiedWithService:
+        appointment.satisfactionSurvey?.satisfiedWithService ?? null,
       startedOnTime: appointment.satisfactionSurvey?.startedOnTime ?? null,
       respectfulTreatment:
         appointment.satisfactionSurvey?.respectfulTreatment ?? null,
@@ -261,16 +264,18 @@ const Appointments = () => {
   const handleSaveSurvey = async () => {
     if (!appointmentForSurvey) return;
     if (
+      surveyData.satisfiedWithService === null ||
       surveyData.startedOnTime === null ||
       surveyData.respectfulTreatment === null
     ) {
-      toast.error("Por favor, responda ambas preguntas.");
+      toast.error("Por favor, responda todas las preguntas.");
       return;
     }
     try {
       await saveAppointment({
         id: appointmentForSurvey.id,
         satisfactionSurvey: {
+          satisfiedWithService: surveyData.satisfiedWithService,
           startedOnTime: surveyData.startedOnTime,
           respectfulTreatment: surveyData.respectfulTreatment,
         },
@@ -1067,6 +1072,47 @@ const Appointments = () => {
                       Encuesta de Satisfacción
                     </h3>
                     <div className="mt-4 space-y-4 text-left">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          ¿Se siente satisfecho con el servicio brindado? *
+                        </p>
+                        <div className="flex gap-4">
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name="satisfiedWithServiceModal"
+                              checked={surveyData.satisfiedWithService === true}
+                              onChange={() =>
+                                setSurveyData((p) => ({
+                                  ...p,
+                                  satisfiedWithService: true,
+                                }))
+                              }
+                              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              Sí
+                            </span>
+                          </label>
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name="satisfiedWithServiceModal"
+                              checked={surveyData.satisfiedWithService === false}
+                              onChange={() =>
+                                setSurveyData((p) => ({
+                                  ...p,
+                                  satisfiedWithService: false,
+                                }))
+                              }
+                              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              No
+                            </span>
+                          </label>
+                        </div>
+                      </div>
                       <div>
                         <p className="text-sm font-medium text-gray-700 mb-2">
                           ¿La atención inició a la hora programada? *

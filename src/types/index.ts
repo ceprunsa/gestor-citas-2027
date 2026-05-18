@@ -176,6 +176,7 @@ export interface Appointment {
    * Encuesta de satisfacción para citas completadas (solo admin/coordinator)
    */
   satisfactionSurvey?: {
+    satisfiedWithService: boolean;
     startedOnTime: boolean;
     respectfulTreatment: boolean;
   };

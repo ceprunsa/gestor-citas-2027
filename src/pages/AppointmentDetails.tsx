@@ -870,6 +870,12 @@ const AppointmentDetails = () => {
               <div className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">¿Se siente satisfecho con el servicio brindado?</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${appointment.satisfactionSurvey.satisfiedWithService ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {appointment.satisfactionSurvey.satisfiedWithService ? 'Sí' : 'No'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">La cita empezó a la hora programada</span>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${appointment.satisfactionSurvey.startedOnTime ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {appointment.satisfactionSurvey.startedOnTime ? 'Sí' : 'No'}

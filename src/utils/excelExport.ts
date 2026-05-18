@@ -81,6 +81,12 @@ export const exportAppointmentsToExcel = async (
       { header: "Motivo de Cancelación", key: "cancellationReason", width: 50 },
       {
         header:
+          "Encuesta de satisfacción: ¿Se siente satisfecho con el servicio brindado?",
+        key: "satisfiedWithService",
+        width: 25,
+      },
+      {
+        header:
           "Encuesta de satisfacción: ¿La atención inició a la hora programada?",
         key: "startedOnTime",
         width: 25,
@@ -156,6 +162,11 @@ export const exportAppointmentsToExcel = async (
           ? new Date(appointment.firstEvaluationDate + "T00:00:00")
           : "",
         cancellationReason: appointment.cancellationReason || "",
+        satisfiedWithService: appointment.satisfactionSurvey
+          ? appointment.satisfactionSurvey.satisfiedWithService
+            ? "Sí"
+            : "No"
+          : "",
         startedOnTime: appointment.satisfactionSurvey
           ? appointment.satisfactionSurvey.startedOnTime
             ? "Sí"
@@ -267,6 +278,7 @@ export const exportAppointmentsToExcel = async (
       row.getCell("previousApplications").alignment = { horizontal: "center" };
       row.getCell("hasDocument").alignment = { horizontal: "center" };
       row.getCell("hasPsychologicalReferral").alignment = { horizontal: "center" };
+      row.getCell("satisfiedWithService").alignment = { horizontal: "left" };
       row.getCell("startedOnTime").alignment = { horizontal: "left" };
       row.getCell("respectfulTreatment").alignment = { horizontal: "left" };
     });
